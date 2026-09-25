@@ -7063,7 +7063,7 @@ function useDemoFrame(callback, paused = false) {
     return () => cancelAnimationFrame(frameId);
   }, [paused]);
 }
-const demo$3 = {
+const demo$4 = {
   id: "block-toybox",
   title: "Block Toybox",
   kind: "GAME",
@@ -7076,9 +7076,9 @@ const WIDTH$2 = 1e3;
 const HEIGHT$2 = 650;
 const WALL = { left: 14, right: 986, top: 88, bottom: 625 };
 const TOYBOX = { x: 26, y: 480, width: 178, height: 140 };
-const COLORS$1 = ["#ff6b6b", "#ffd166", "#4dd4ac", "#55b8ff", "#a98bff", "#ff8ec7"];
+const COLORS$2 = ["#ff6b6b", "#ffd166", "#4dd4ac", "#55b8ff", "#a98bff", "#ff8ec7"];
 const SIZES = [[68, 68], [90, 48], [54, 82], [110, 42], [58, 58]];
-const clamp$4 = (value, low, high) => Math.max(low, Math.min(high, value));
+const clamp$5 = (value, low, high) => Math.max(low, Math.min(high, value));
 function makeBlock(id2, x2, y2, sizeIndex = id2 % SIZES.length) {
   const [width, height] = SIZES[sizeIndex];
   return {
@@ -7089,7 +7089,7 @@ function makeBlock(id2, x2, y2, sizeIndex = id2 % SIZES.length) {
     height,
     vx: 0,
     vy: 0,
-    color: COLORS$1[id2 % COLORS$1.length]
+    color: COLORS$2[id2 % COLORS$2.length]
   };
 }
 function createWorld() {
@@ -7179,7 +7179,7 @@ function collide(a, b, heldId) {
   const tx = -ny;
   const ty = nx;
   const tangentSpeed = relativeX * tx + relativeY * ty;
-  const friction = clamp$4(-tangentSpeed / inverseTotal, -impulse * 0.34, impulse * 0.34);
+  const friction = clamp$5(-tangentSpeed / inverseTotal, -impulse * 0.34, impulse * 0.34);
   a.vx -= tx * friction * inverseA;
   a.vy -= ty * friction * inverseA;
   b.vx += tx * friction * inverseB;
@@ -7213,8 +7213,8 @@ function roundedRect(context, x2, y2, width, height, radius) {
 function drawWorld(context, world) {
   context.clearRect(0, 0, WIDTH$2, HEIGHT$2);
   const background = context.createLinearGradient(0, WALL.top, 0, WALL.bottom);
-  background.addColorStop(0, "rgba(15, 28, 48, .58)");
-  background.addColorStop(1, "rgba(5, 12, 23, .84)");
+  background.addColorStop(0, "rgba(15, 28, 48, .08)");
+  background.addColorStop(1, "rgba(5, 12, 23, .2)");
   context.fillStyle = background;
   context.fillRect(0, 0, WIDTH$2, HEIGHT$2);
   context.strokeStyle = "rgba(126, 231, 255, .48)";
@@ -7324,21 +7324,21 @@ function BlockToybox({ inputRef, paused }) {
     }
     const held = world.blocks.find((block) => block.id === world.heldId);
     if (held && input.action && input.active) {
-      held.x = clamp$4(x2 + world.grabOffsetX, WALL.left + held.width / 2, WALL.right - held.width / 2);
-      held.y = clamp$4(y2 + world.grabOffsetY, WALL.top + held.height / 2, WALL.bottom - held.height / 2);
-      held.vx = clamp$4(world.pointerVx, -1800, 1800);
-      held.vy = clamp$4(world.pointerVy, -1800, 1800);
+      held.x = clamp$5(x2 + world.grabOffsetX, WALL.left + held.width / 2, WALL.right - held.width / 2);
+      held.y = clamp$5(y2 + world.grabOffsetY, WALL.top + held.height / 2, WALL.bottom - held.height / 2);
+      held.vx = clamp$5(world.pointerVx, -1800, 1800);
+      held.vy = clamp$5(world.pointerVy, -1800, 1800);
     }
     if (actionEnded && held) {
-      held.vx = clamp$4(world.pointerVx, -1800, 1800);
-      held.vy = clamp$4(world.pointerVy, -1800, 1800);
+      held.vx = clamp$5(world.pointerVx, -1800, 1800);
+      held.vy = clamp$5(world.pointerVy, -1800, 1800);
       world.heldId = null;
     }
     world.actionWasDown = Boolean(input.action && input.active);
     stepPhysics(world, seconds);
     drawWorld(canvas.getContext("2d"), world);
   }, paused);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { position: "absolute", inset: 0, overflow: "hidden", background: "rgba(3, 8, 18, .72)" }, children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { position: "absolute", inset: 0, overflow: "hidden" }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "canvas",
       {
@@ -7355,9 +7355,9 @@ function BlockToybox({ inputRef, paused }) {
 const __vite_glob_0_0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: BlockToybox,
-  demo: demo$3
+  demo: demo$4
 }, Symbol.toStringTag, { value: "Module" }));
-const demo$2 = {
+const demo$3 = {
   id: "fluid-flow",
   title: "Fluid Flow",
   kind: "VISUAL",
@@ -7376,10 +7376,10 @@ const PALETTE = [
   [1, 0.72, 0.2],
   [0.22, 1, 0.62]
 ];
-const clamp$3 = (value, low, high) => Math.max(low, Math.min(high, value));
+const clamp$4 = (value, low, high) => Math.max(low, Math.min(high, value));
 function sample(field, x2, y2) {
-  const sx = clamp$3(x2, 0, WIDTH$1 - 1.001);
-  const sy = clamp$3(y2, 0, HEIGHT$1 - 1.001);
+  const sx = clamp$4(x2, 0, WIDTH$1 - 1.001);
+  const sy = clamp$4(y2, 0, HEIGHT$1 - 1.001);
   const x0 = Math.floor(sx);
   const y0 = Math.floor(sy);
   const x1 = Math.min(WIDTH$1 - 1, x0 + 1);
@@ -7423,8 +7423,8 @@ function addVortex(simulation, point, previous, seconds, color, boosted) {
   const cx = point.x * (WIDTH$1 - 1);
   const cy = point.y * (HEIGHT$1 - 1);
   const elapsed = Math.max(seconds, 1 / 60);
-  const motionX = previous ? clamp$3((point.x - previous.x) * WIDTH$1 / elapsed, -100, 100) : 0;
-  const motionY = previous ? clamp$3((point.y - previous.y) * HEIGHT$1 / elapsed, -100, 100) : 0;
+  const motionX = previous ? clamp$4((point.x - previous.x) * WIDTH$1 / elapsed, -100, 100) : 0;
+  const motionY = previous ? clamp$4((point.y - previous.y) * HEIGHT$1 / elapsed, -100, 100) : 0;
   const speed = Math.hypot(motionX, motionY);
   const radius = boosted ? 17 : 11;
   const spin = (boosted ? 54 : 23) + Math.min(32, speed * 0.45);
@@ -7548,6 +7548,269 @@ function FluidFlow({ inputRef, paused }) {
 const __vite_glob_0_1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: FluidFlow,
+  demo: demo$3
+}, Symbol.toStringTag, { value: "Module" }));
+const demo$2 = {
+  id: "gravity-well",
+  title: "Gravity Well",
+  kind: "VISUAL",
+  order: 4,
+  icon: "🪐",
+  description: "Hold still to pull a field of stars into a glowing spiral.",
+  instructions: "Hold a fingertip or pointer still to strengthen the pull. Move to place a new well."
+};
+const PARTICLE_COUNT = 240;
+const COLORS$1 = ["#79e8ff", "#c2b7ff", "#ffd991", "#8fffc8"];
+const BACKGROUND = "#040a1b";
+const clamp$3 = (value, low, high) => Math.max(low, Math.min(high, value));
+function newParticle(width, height, fromEdge = false) {
+  let x2 = Math.random() * width;
+  let y2 = Math.random() * height;
+  if (fromEdge) {
+    const side = Math.floor(Math.random() * 4);
+    if (side === 0) {
+      x2 = -12;
+      y2 = Math.random() * height;
+    }
+    if (side === 1) {
+      x2 = width + 12;
+      y2 = Math.random() * height;
+    }
+    if (side === 2) {
+      x2 = Math.random() * width;
+      y2 = -12;
+    }
+    if (side === 3) {
+      x2 = Math.random() * width;
+      y2 = height + 12;
+    }
+  }
+  return {
+    x: x2,
+    y: y2,
+    vx: (Math.random() - 0.5) * 28,
+    vy: (Math.random() - 0.5) * 28,
+    size: 0.8 + Math.random() * 1.6,
+    opacity: 0.45 + Math.random() * 0.5,
+    color: COLORS$1[Math.floor(Math.random() * COLORS$1.length)]
+  };
+}
+function resizeScene(canvas, sceneRef) {
+  const width = Math.max(1, Math.round(canvas.clientWidth));
+  const height = Math.max(1, Math.round(canvas.clientHeight));
+  const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+  const previous = sceneRef.current;
+  if (previous && previous.width === width && previous.height === height && previous.dpr === dpr) return;
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  const context = canvas.getContext("2d", { alpha: false });
+  if (!context) return;
+  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  context.fillStyle = BACKGROUND;
+  context.fillRect(0, 0, width, height);
+  if (previous) {
+    const scaleX = width / previous.width;
+    const scaleY = height / previous.height;
+    previous.particles.forEach((particle) => {
+      particle.x *= scaleX;
+      particle.y *= scaleY;
+      particle.vx *= scaleX;
+      particle.vy *= scaleY;
+    });
+    previous.well.x *= scaleX;
+    previous.well.y *= scaleY;
+    if (previous.holdOrigin) {
+      previous.holdOrigin.x *= scaleX;
+      previous.holdOrigin.y *= scaleY;
+    }
+    Object.assign(previous, { context, width, height, dpr });
+    return;
+  }
+  sceneRef.current = {
+    context,
+    width,
+    height,
+    dpr,
+    particles: Array.from({ length: PARTICLE_COUNT }, () => newParticle(width, height)),
+    well: { x: width / 2, y: height / 2 },
+    holdOrigin: null,
+    charge: 0,
+    active: false,
+    time: 0,
+    hudTime: 0
+  };
+}
+function updateWell(scene, input, seconds) {
+  scene.active = input.active;
+  if (!input.active) {
+    scene.holdOrigin = null;
+    scene.charge = Math.max(0, scene.charge - seconds * 1.2);
+    return;
+  }
+  const x2 = clamp$3(input.x, 0, 1) * scene.width;
+  const y2 = clamp$3(input.y, 0, 1) * scene.height;
+  if (!scene.holdOrigin) {
+    scene.holdOrigin = { x: x2, y: y2 };
+    scene.well = { x: x2, y: y2 };
+  }
+  const tolerance = Math.max(24, Math.min(scene.width, scene.height) * 0.045);
+  if (Math.hypot(x2 - scene.holdOrigin.x, y2 - scene.holdOrigin.y) > tolerance) {
+    scene.holdOrigin = { x: x2, y: y2 };
+    scene.charge = 0;
+  } else {
+    scene.charge = Math.min(1, scene.charge + seconds / 1.8);
+  }
+  const follow = Math.min(1, seconds * 12);
+  scene.well.x += (x2 - scene.well.x) * follow;
+  scene.well.y += (y2 - scene.well.y) * follow;
+}
+function drawWell(scene) {
+  if (!scene.active && scene.charge <= 0) return;
+  const { context, well, charge, time } = scene;
+  const radius = 48 + charge * 95;
+  const glow = context.createRadialGradient(well.x, well.y, 4, well.x, well.y, radius);
+  glow.addColorStop(0, `rgba(255, 220, 145, ${0.31 + charge * 0.4})`);
+  glow.addColorStop(0.35, `rgba(170, 112, 255, ${0.12 + charge * 0.18})`);
+  glow.addColorStop(1, "rgba(80, 130, 255, 0)");
+  context.fillStyle = glow;
+  context.beginPath();
+  context.arc(well.x, well.y, radius, 0, Math.PI * 2);
+  context.fill();
+  context.lineWidth = 1;
+  context.strokeStyle = `rgba(151, 198, 255, ${0.13 + charge * 0.16})`;
+  for (let ring = 0; ring < 3; ring += 1) {
+    context.beginPath();
+    context.arc(well.x, well.y, 55 + ring * 58 + charge * 24, 0, Math.PI * 2);
+    context.stroke();
+  }
+  context.strokeStyle = "rgba(255, 234, 171, .24)";
+  context.lineWidth = 5;
+  context.beginPath();
+  context.arc(well.x, well.y, 28, 0, Math.PI * 2);
+  context.stroke();
+  context.strokeStyle = "#ffd991";
+  context.lineWidth = 5;
+  context.lineCap = "round";
+  context.beginPath();
+  context.arc(well.x, well.y, 28, -Math.PI / 2 + time * 0.18, -Math.PI / 2 + time * 0.18 + charge * Math.PI * 2);
+  context.stroke();
+  context.fillStyle = BACKGROUND;
+  context.beginPath();
+  context.arc(well.x, well.y, 10 + charge * 7, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = "#e4faff";
+  context.lineWidth = 1.5;
+  context.stroke();
+}
+function drawFrame(scene, seconds) {
+  const { context, width, height, particles, well, charge, active } = scene;
+  const fade = clamp$3(1 - Math.exp(-seconds * 11), 0.08, 0.32);
+  context.fillStyle = `rgba(4, 10, 27, ${fade})`;
+  context.fillRect(0, 0, width, height);
+  context.save();
+  context.globalCompositeOperation = "lighter";
+  const reach = Math.max(90, Math.min(width, height) * 0.25);
+  for (let index = 0; index < particles.length; index += 1) {
+    const particle = particles[index];
+    const oldX = particle.x;
+    const oldY = particle.y;
+    if (active) {
+      const dx = well.x - particle.x;
+      const dy = well.y - particle.y;
+      const distance = Math.max(12, Math.hypot(dx, dy));
+      const falloff = 1 / (1 + (distance / reach) ** 2);
+      const pull = (35 + charge * 610) * falloff;
+      const spin = pull * (0.24 + charge * 0.48);
+      particle.vx += (dx / distance * pull - dy / distance * spin) * seconds;
+      particle.vy += (dy / distance * pull + dx / distance * spin) * seconds;
+    }
+    const drag = Math.exp(-(active ? 0.52 : 0.025) * seconds);
+    particle.vx *= drag;
+    particle.vy *= drag;
+    const speed = Math.hypot(particle.vx, particle.vy);
+    if (speed > 340) {
+      particle.vx *= 340 / speed;
+      particle.vy *= 340 / speed;
+    }
+    particle.x += particle.vx * seconds;
+    particle.y += particle.vy * seconds;
+    const swallowed = active && Math.hypot(well.x - particle.x, well.y - particle.y) < 11 + charge * 7;
+    const escaped = particle.x < -28 || particle.x > width + 28 || particle.y < -28 || particle.y > height + 28;
+    if (swallowed || escaped) {
+      particles[index] = newParticle(width, height, active);
+      continue;
+    }
+    context.globalAlpha = particle.opacity;
+    context.strokeStyle = particle.color;
+    context.lineWidth = particle.size;
+    context.beginPath();
+    context.moveTo(oldX, oldY);
+    context.lineTo(particle.x, particle.y);
+    context.stroke();
+    context.fillStyle = particle.color;
+    context.beginPath();
+    context.arc(particle.x, particle.y, particle.size * 0.65, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
+  drawWell(scene);
+}
+function GravityWell({ inputRef, paused }) {
+  const canvasRef = reactExports.useRef(null);
+  const sceneRef = reactExports.useRef(null);
+  const hudRef = reactExports.useRef({ active: false, percent: 0 });
+  const [hud, setHud] = reactExports.useState(hudRef.current);
+  reactExports.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return void 0;
+    const resize = () => resizeScene(canvas, sceneRef);
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+  useDemoFrame((seconds) => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.time += seconds;
+    updateWell(scene, inputRef.current, seconds);
+    drawFrame(scene, seconds);
+    scene.hudTime += seconds;
+    if (scene.hudTime >= 0.1 || scene.active !== hudRef.current.active) {
+      scene.hudTime = 0;
+      const next = { active: scene.active, percent: Math.round(scene.charge * 100) };
+      if (next.active !== hudRef.current.active || next.percent !== hudRef.current.percent) {
+        hudRef.current = next;
+        setHud(next);
+      }
+    }
+  }, paused);
+  const message = !hud.active ? "Show a hand or choose Pointer" : hud.percent >= 100 ? "Gravity at full strength" : "Hold steady to build gravity";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { position: "absolute", inset: 0, overflow: "hidden", background: BACKGROUND }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "canvas",
+      {
+        ref: canvasRef,
+        "aria-label": "Particle field pulled into a gravity well where you hold your hand or pointer",
+        style: { display: "block", width: "100%", height: "100%" }
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { position: "absolute", top: "clamp(108px, 14vh, 136px)", left: 20, width: "min(290px, calc(100% - 40px))", padding: "13px 15px", color: "#f1f8ff", background: "rgba(4, 10, 27, .7)", border: "1px solid rgba(170, 210, 255, .25)", borderRadius: 12, backdropFilter: "blur(8px)", pointerEvents: "none", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", fontSize: 12, fontWeight: 800, letterSpacing: ".09em" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "GRAVITY WELL" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+          hud.percent,
+          "%"
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { role: "progressbar", "aria-label": "Gravity strength", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": hud.percent, style: { height: 7, margin: "9px 0 8px", background: "rgba(145, 181, 223, .25)", overflow: "hidden" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { width: `${hud.percent}%`, height: "100%", background: "linear-gradient(90deg, #79e8ff, #ffd991)", transition: "width .1s linear" } }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: 11, color: "#b8cadf" }, children: message })
+    ] })
+  ] });
+}
+const __vite_glob_0_2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: GravityWell,
   demo: demo$2
 }, Symbol.toStringTag, { value: "Module" }));
 const WIDTH = 960;
@@ -7711,7 +7974,7 @@ function SpaceInvaders({ inputRef, paused }) {
     ] }) : null
   ] });
 }
-const __vite_glob_0_2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const __vite_glob_0_3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: SpaceInvaders,
   demo: demo$1
@@ -7723,7 +7986,7 @@ const demo = {
   order: 2,
   icon: "🔷",
   description: "Turn your fingertips into a shifting stained-glass mosaic.",
-  instructions: "Move your hand or pointer. Each fingertip becomes a colored region."
+  instructions: "Move up to four hands or use your pointer. Each fingertip becomes a colored region."
 };
 const COLORS = ["#ff557f", "#ffb84c", "#ffe66d", "#58e6ad", "#4ec5ff", "#9d7bff"];
 function clip(polygon, nx, ny, offset) {
@@ -7778,12 +8041,12 @@ function Voronoi({ inputRef, paused }) {
     sites.map((site) => /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: site.x, cy: site.y, r: "8", fill: "white" }, `${site.id}-dot`))
   ] });
 }
-const __vite_glob_0_3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const __vite_glob_0_4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Voronoi,
   demo
 }, Symbol.toStringTag, { value: "Module" }));
-const modules = /* @__PURE__ */ Object.assign({ "./demos/BlockToybox.jsx": __vite_glob_0_0, "./demos/FluidFlow.jsx": __vite_glob_0_1, "./demos/SpaceInvaders.jsx": __vite_glob_0_2, "./demos/Voronoi.jsx": __vite_glob_0_3 });
+const modules = /* @__PURE__ */ Object.assign({ "./demos/BlockToybox.jsx": __vite_glob_0_0, "./demos/FluidFlow.jsx": __vite_glob_0_1, "./demos/GravityWell.jsx": __vite_glob_0_2, "./demos/SpaceInvaders.jsx": __vite_glob_0_3, "./demos/Voronoi.jsx": __vite_glob_0_4 });
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DEMOS = Object.entries(modules).map(([file, module]) => {
   if (!module.demo || typeof module.default !== "function") {
@@ -69353,6 +69616,7 @@ function pt(t2, e) {
 }(dt || (dt = {}));
 const MODEL = dt.MediaPipeHands;
 const MEDIAPIPE_ASSETS = "https://cdn.jsdelivr.net/npm/@mediapipe/hands";
+const MAX_HANDS = 4;
 const TIP_INDEXES = [4, 8, 12, 16, 20];
 function normalizedPoint(point, width, height) {
   if (!Number.isFinite(point == null ? void 0 : point.x) || !Number.isFinite(point == null ? void 0 : point.y)) return null;
@@ -69384,7 +69648,7 @@ async function createDetector() {
     return await pt(MODEL, {
       runtime: "mediapipe",
       modelType: "full",
-      maxHands: 2,
+      maxHands: MAX_HANDS,
       solutionPath: MEDIAPIPE_ASSETS
     });
   } catch {
@@ -69393,7 +69657,7 @@ async function createDetector() {
     return pt(MODEL, {
       runtime: "tfjs",
       modelType: "full",
-      maxHands: 2
+      maxHands: MAX_HANDS
     });
   }
 }
