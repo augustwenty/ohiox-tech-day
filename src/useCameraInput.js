@@ -7,6 +7,7 @@ import { emptyInput, handInput } from "./input.js";
 
 const MODEL = handPoseDetection.SupportedModels.MediaPipeHands;
 const MEDIAPIPE_ASSETS = "https://cdn.jsdelivr.net/npm/@mediapipe/hands";
+const MAX_HANDS = 4;
 const TIP_INDEXES = [4, 8, 12, 16, 20];
 
 function normalizedPoint(point, width, height) {
@@ -41,7 +42,7 @@ async function createDetector() {
     return await handPoseDetection.createDetector(MODEL, {
       runtime: "mediapipe",
       modelType: "full",
-      maxHands: 2,
+      maxHands: MAX_HANDS,
       solutionPath: MEDIAPIPE_ASSETS,
     });
   } catch {
@@ -50,7 +51,7 @@ async function createDetector() {
     return handPoseDetection.createDetector(MODEL, {
       runtime: "tfjs",
       modelType: "full",
-      maxHands: 2,
+      maxHands: MAX_HANDS,
     });
   }
 }

@@ -8,7 +8,7 @@ export const demo = {
   order: 2,
   icon: "🔷",
   description: "Turn your fingertips into a shifting stained-glass mosaic.",
-  instructions: "Move your hand or pointer. Each fingertip becomes a colored region.",
+  instructions: "Move up to four hands or use your pointer. Each fingertip becomes a colored region.",
 };
 
 const COLORS = ["#ff557f", "#ffb84c", "#ffe66d", "#58e6ad", "#4ec5ff", "#9d7bff"];
