@@ -7,7 +7,7 @@ export const demo = {
   kind: "GAME",
   order: 6,
   icon: "🎯",
-  description: "Aim with one hand, pinch to charge your slingshot, and defend the block from zombies.",
+  description: "Aim with one hand, charge your slingshot, and defend the block from zombies and a bat-wielding bruiser.",
   instructions: "Camera: move one hand to aim, pinch up to 2 seconds, release to fire. Pointer: aim, hold, release.",
 };
 
@@ -41,15 +41,16 @@ function smoothPoint(previous, target, seconds, speed = 14) {
   };
 }
 
-function makeEnemy(id, wave, depth = -0.05) {
-  const kind = wave > 1 && Math.random() < 0.23 ? "tank" : Math.random() < 0.27 ? "runner" : "shambler";
+function makeEnemy(id, wave, depth = -0.05, forcedKind = null) {
+  const roll = Math.random();
+  const kind = forcedKind ?? (roll < 0.18 ? "slugger" : wave > 1 && roll < 0.38 ? "tank" : roll < 0.57 ? "runner" : "shambler");
   return {
     id,
     kind,
     lane: (Math.random() * 1.7 - 0.85),
     depth,
-    speed: (kind === "runner" ? 0.09 : kind === "tank" ? 0.052 : 0.067) * (1 + Math.min(0.5, (wave - 1) * 0.09)),
-    hp: kind === "tank" ? 2 : 1,
+    speed: (kind === "runner" ? 0.09 : kind === "tank" ? 0.052 : kind === "slugger" ? 0.061 : 0.067) * (1 + Math.min(0.5, (wave - 1) * 0.09)),
+    hp: kind === "tank" || kind === "slugger" ? 2 : 1,
     phase: Math.random() * TAU,
     flash: 0,
   };
@@ -65,7 +66,7 @@ function newGame() {
     wave: 1,
     defeated: 0,
     nextId: 4,
-    enemies: [makeEnemy(1, 1, 0.32), makeEnemy(2, 1, 0.16), makeEnemy(3, 1, 0.02)],
+    enemies: [makeEnemy(1, 1, 0.32, "shambler"), makeEnemy(2, 1, 0.22, "slugger"), makeEnemy(3, 1, 0.02, "runner")],
     shots: [],
     bursts: [],
     popups: [],
@@ -120,7 +121,7 @@ function aimTarget(scene, width, height) {
     if (enemy.depth < 0 || enemy.depth > 1.05) continue;
     const screen = enemyScreen(enemy, width, height, scene.time);
     const center = { x: screen.x, y: screen.y - 48 * screen.scale };
-    const ratio = distance(at, center) / (38 * screen.scale + 17);
+    const ratio = distance(at, center) / ((enemy.kind === "slugger" ? 49 : 38) * screen.scale + 17);
     if (ratio < bestRatio) { best = enemy; bestRatio = ratio; }
   }
   return best;
@@ -181,14 +182,14 @@ function resolveShot(scene, shot, width, height) {
   enemy.hp -= shot.power > 0.78 ? 2 : 1;
   enemy.flash = 0.2;
   scene.shake = Math.max(scene.shake, 9);
-  addBurst(scene, at.x, at.y - 48 * at.scale, enemy.kind === "tank" ? "#d2f374" : "#a4ead0", 16);
+  addBurst(scene, at.x, at.y - 48 * at.scale, enemy.kind === "slugger" ? "#ffc184" : enemy.kind === "tank" ? "#d2f374" : "#a4ead0", 16);
   if (enemy.hp <= 0) {
     scene.enemies = scene.enemies.filter((item) => item.id !== enemy.id);
     scene.combo = Math.min(5, scene.combo + 1);
     scene.bestCombo = Math.max(scene.bestCombo, scene.combo);
     scene.defeated += 1;
     scene.wave = 1 + Math.floor(scene.defeated / 8);
-    const points = 100 * scene.combo + (enemy.kind === "tank" ? 100 : 0);
+    const points = 100 * scene.combo + (enemy.kind === "slugger" ? 150 : enemy.kind === "tank" ? 100 : 0);
     scene.score += points;
     addPopup(scene, at.x, at.y - 80 * at.scale, `BONK! +${points}`, "#fff3a7");
     scene.message = scene.combo >= 3 ? `${scene.combo}× COMBO!` : "NICE SHOT!";
@@ -426,7 +427,81 @@ function drawStreet(ctx, width, height, time) {
   ctx.fillRect(0,height*.96,width,height*.04);
 }
 
+function drawSlugger(ctx, enemy, width, height, time, selected) {
+  const at = enemyScreen(enemy, width, height, time);
+  const walk = Math.sin(time * 5 + enemy.phase);
+  const outline = "#263642";
+  const skin = "#dfaa83";
+  ctx.save(); ctx.translate(at.x, at.y); ctx.scale(at.scale, at.scale);
+  if (selected) {
+    ctx.globalAlpha = .7 + .25 * Math.sin(time * 12);
+    circle(ctx, 0, -55, 70, "rgba(255,232,129,.17)", "#fff1a2", 2 / at.scale);
+    ctx.globalAlpha = 1;
+  }
+  ctx.save(); ctx.scale(1, .32); circle(ctx, 0, 0, 50, "rgba(28,52,52,.22)"); ctx.restore();
+
+  // The raised bat sits behind the hand and has a wider barrel than handle.
+  ctx.save(); ctx.translate(51, -99); ctx.rotate(walk * .045);
+  line(ctx, [[0,0],[17,-75]], outline, 16);
+  line(ctx, [[0,0],[17,-75]], "#9d6846", 10);
+  line(ctx, [[9,-35],[17,-75]], "#c28b5d", 13);
+  circle(ctx, 17, -76, 7, "#c28b5d", outline, 2);
+  line(ctx, [[-1,-4],[1,-16]], "#e9c08a", 2);
+  ctx.restore();
+
+  for (const side of [-1, 1]) {
+    const stride = walk * side * 7;
+    line(ctx, [[side*18,-44],[side*18+stride,-8]], outline, 24);
+    line(ctx, [[side*18,-44],[side*18+stride,-8]], skin, 17);
+    polygon(ctx, [[side*18+stride-14,-7],[side*18+stride+12,-7],[side*18+stride+18,2],[side*18+stride-14,2]], "#4f5055", outline, 3);
+  }
+  polygon(ctx, [[-37,-63],[37,-63],[34,-37],[17,-37],[13,-43],[-12,-43],[-18,-37],[-35,-37]], "#3d5267", outline, 4);
+  line(ctx, [[-33,-59],[33,-59]], "#614339", 6);
+  circle(ctx, 0, -58, 4, "#e9c980", outline, 2);
+
+  ctx.beginPath(); ctx.ellipse(0,-79,46,43,0,0,TAU);
+  ctx.fillStyle = skin; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = outline; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(6,-65,30,25,-.1,0,TAU);
+  ctx.strokeStyle = "#c78f70"; ctx.lineWidth = 3; ctx.stroke();
+  circle(ctx, 9, -59, 3, "#9a674e");
+  for (const x of [-10,-3,4,11]) line(ctx, [[x,-100],[x+3,-95]], "#6e5148", 2);
+  line(ctx, [[-31,-82],[-26,-77]], "#b27660", 2);
+
+  line(ctx, [[-37,-105],[-55,-84],[-59+walk*4,-63]], outline, 19);
+  line(ctx, [[-37,-105],[-55,-84],[-59+walk*4,-63]], skin, 14);
+  circle(ctx, -59+walk*4, -63, 10, skin, outline, 3);
+  line(ctx, [[37,-105],[53,-113],[51,-100]], outline, 21);
+  line(ctx, [[37,-105],[53,-113],[51,-100]], skin, 15);
+  circle(ctx, 51, -100, 10, skin, outline, 3);
+
+  circle(ctx, 0, -127, 27, skin, outline, 4);
+  circle(ctx, -26, -128, 6, skin, outline, 2);
+  circle(ctx, 26, -128, 6, skin, outline, 2);
+  polygon(ctx, [[-27,-128],[-29,-145],[-21,-154],[-13,-153],[-16,-137]], "#60605f", outline, 2);
+  polygon(ctx, [[27,-128],[29,-145],[20,-154],[13,-153],[16,-137]], "#60605f", outline, 2);
+  for (const eyeX of [-11,11]) {
+    circle(ctx, eyeX, -123, 6, "#fff1d0", outline, 2);
+    circle(ctx, eyeX, -121, 2.5, "#263642");
+  }
+  line(ctx, [[-20,-135],[-5,-127]], "#4b3d3d", 5);
+  line(ctx, [[5,-127],[20,-135]], "#4b3d3d", 5);
+  polygon(ctx, [[-4,-119],[0,-110],[6,-117]], "#c9896f", outline, 2);
+  line(ctx, [[-13,-104],[0,-108],[13,-104]], "#493b3d", 4);
+  line(ctx, [[-18,-112],[-15,-110]], "#a57260", 2);
+  line(ctx, [[15,-110],[18,-112]], "#a57260", 2);
+  for (const x of [-8,-3,3,8]) circle(ctx, x, -100, 1.3, "#785950");
+
+  if (enemy.flash > 0) {
+    ctx.globalAlpha = enemy.flash * 2.6;
+    ctx.beginPath(); ctx.ellipse(0,-79,46,43,0,0,TAU);
+    ctx.fillStyle = "#fff5bd"; ctx.fill();
+    circle(ctx, 0, -127, 27, "#fff5bd");
+  }
+  ctx.restore();
+}
+
 function drawEnemy(ctx, enemy, width, height, time, selected) {
+  if (enemy.kind === "slugger") { drawSlugger(ctx, enemy, width, height, time, selected); return; }
   const at = enemyScreen(enemy,width,height,time);
   const s = at.scale;
   ctx.save(); ctx.translate(at.x,at.y); ctx.scale(s,s);
