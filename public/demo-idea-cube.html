@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Demo Idea Cube · OhioX Tech Day</title>
+  <style>
+    :root {
+      --paper: #f0eee6;
+      --white: #faf9f4;
+      --ink: #171717;
+      --muted: #55554f;
+      --rule: #a9a69c;
+      --red: #df392e;
+      --blue: #2456a6;
+      --yellow: #f3c637;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button { font: inherit; }
+    button:focus-visible, [role="button"]:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+    .page { width: min(1320px, calc(100% - 48px)); margin: 0 auto; padding: 0 0 56px; }
+    .masthead {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      min-height: 62px; border-bottom: 2px solid var(--ink);
+      font-size: .72rem; font-weight: 900; letter-spacing: .13em; text-transform: uppercase;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { display: flex; align-items: center; gap: 3px; height: 22px; }
+    .brand-mark span:first-child { width: 18px; height: 18px; background: var(--red); }
+    .brand-mark span:last-child { width: 18px; height: 18px; border-radius: 50%; background: var(--blue); }
+    .masthead-right { color: var(--muted); }
+
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) 260px; min-height: 310px; border-bottom: 2px solid var(--ink); }
+    .hero-copy { display: flex; flex-direction: column; justify-content: space-between; padding: 28px 24px 26px 0; }
+    .eyebrow { margin: 0 0 22px; color: var(--red); font: 900 .78rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .11em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(3.1rem, 6.9vw, 7.2rem); font-weight: 900; letter-spacing: -.087em; line-height: .82; text-transform: uppercase; }
+    h1 span { color: var(--red); }
+    .intro { max-width: 620px; margin: 24px 0 0; font-size: clamp(.94rem, 1.35vw, 1.1rem); font-weight: 500; line-height: 1.4; }
+    .hero-number { position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 20px; background: var(--yellow); border-left: 2px solid var(--ink); }
+    .hero-number::before { content: ""; position: absolute; width: 165px; height: 165px; right: -80px; top: 41px; border: 27px solid var(--red); border-radius: 50%; }
+    .hero-number strong { position: relative; z-index: 1; font-size: clamp(8rem, 15vw, 13rem); font-weight: 900; letter-spacing: -.11em; line-height: .77; }
+    .hero-number span { position: relative; z-index: 1; font: 900 .75rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; text-transform: uppercase; }
+
+    .section-index { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 0 11px; font: 900 .74rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .section-index span:last-child { color: var(--muted); font-weight: 700; }
+    .axes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 2px solid var(--ink); margin-bottom: 22px; background: var(--white); }
+    .axis { --axis-color: var(--red); min-width: 0; padding: 19px 20px 20px; border-right: 2px solid var(--ink); border-top: 8px solid var(--axis-color); }
+    .axis:nth-child(2) { --axis-color: var(--blue); }
+    .axis:nth-child(3) { --axis-color: var(--yellow); border-right: 0; }
+    .axis-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .axis h2 { margin: 0; font-size: clamp(1.3rem, 2vw, 1.7rem); font-weight: 900; letter-spacing: -.045em; text-transform: uppercase; }
+    .axis-code { font: 900 .75rem ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; white-space: nowrap; }
+    .axis p { margin: 0 0 18px; min-height: 2.6em; color: var(--muted); font-size: .84rem; line-height: 1.4; }
+    .choices { display: flex; flex-wrap: wrap; gap: 5px; }
+    .choice { min-height: 38px; padding: 7px 10px; border: 1.5px solid var(--ink); border-radius: 0; background: transparent; color: var(--ink); font-size: .79rem; font-weight: 800; cursor: pointer; }
+    .choice:hover { background: var(--paper); }
+    .choice[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+
+    .explorer { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 0; align-items: stretch; border: 2px solid var(--ink); }
+    .cube-panel, .detail-panel { min-width: 0; }
+    .cube-panel { background: var(--white); overflow: hidden; }
+    .panel-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 17px 20px 0; }
+    .panel-top h2 { margin: 0; font-size: .78rem; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; }
+    .panel-note { color: var(--muted); font-size: .75rem; text-align: right; }
+    .cube-wrap { position: relative; background-image: linear-gradient(to right, rgba(23,23,23,.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(23,23,23,.045) 1px, transparent 1px); background-size: 40px 40px; background-position: 20px 6px; }
+    #cube { display: block; width: 100%; height: auto; aspect-ratio: 620 / 520; touch-action: none; cursor: grab; }
+    #cube.dragging { cursor: grabbing; }
+    .cube-grid { stroke: var(--rule); stroke-width: 1; fill: none; }
+    .cube-edge { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+    .axis-guides { pointer-events: none; }
+    .axis-rail { stroke: var(--ink); stroke-width: 2.5; }
+    .axis-connector { stroke: var(--ink); stroke-width: 1.3; stroke-dasharray: 4 5; opacity: .55; }
+    .axis-tick { fill: var(--ink); }
+    .axis-chip rect { fill: var(--white); stroke: var(--ink); stroke-width: 1.3; }
+    .axis-chip text { fill: var(--ink); font: 900 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .025em; dominant-baseline: middle; text-anchor: middle; }
+    .axis-chip.is-active rect { fill: var(--ink); }
+    .axis-chip.is-active text { fill: var(--white); }
+    .node { cursor: pointer; }
+    .node circle.hit { fill: transparent; }
+    .node circle.dot { stroke: var(--ink); stroke-width: 1.6; transition: r .16s ease, opacity .16s ease; }
+    .node circle.halo { fill: none; stroke: var(--ink); stroke-width: 2.6; }
+    .node:hover circle.dot, .node:focus-visible circle.dot { r: 14; }
+    .cube-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 17px; padding: 0 18px 13px; font-size: .76rem; font-weight: 800; text-transform: uppercase; }
+    .key-item { display: inline-flex; align-items: center; gap: 7px; }
+    .swatch { width: 11px; height: 11px; border: 1px solid var(--ink); }
+    .visual { background: var(--red); }
+    .discover { background: var(--blue); }
+    .challenge { background: var(--yellow); }
+    .view-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; padding: 0 18px 18px; }
+    .view-controls button, .reset { min-height: 38px; padding: 7px 10px; border: 1.5px solid var(--ink); border-radius: 0; background: var(--white); color: var(--ink); font-size: .78rem; font-weight: 800; cursor: pointer; }
+    .view-controls button:hover, .reset:hover { background: var(--yellow); }
+
+    .detail-panel { display: flex; flex-direction: column; padding: 25px; border-left: 2px solid var(--ink); background: var(--ink); color: var(--white); }
+    .detail-kicker { color: var(--yellow); font: 900 .78rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .11em; }
+    .detail-panel h2 { margin: 18px 0 20px; font-size: clamp(2.2rem, 3.8vw, 4.1rem); font-weight: 900; letter-spacing: -.075em; line-height: .97; text-transform: uppercase; }
+    .detail-panel p { margin: 0; font-size: 1rem; line-height: 1.45; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 26px 0; }
+    .tag { padding: 7px 8px; border: 1px solid #bcbab1; color: var(--white); font: 700 .69rem ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+    .detail-label { margin-top: auto; padding-top: 25px; border-top: 1px solid #77766e; color: var(--yellow); font: 900 .73rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .detail-input { margin-top: 10px !important; font-size: .87rem !important; }
+
+    .results-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; margin: 32px 0 12px; padding-top: 15px; border-top: 5px solid var(--ink); }
+    .results-head h2 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.7rem); font-weight: 900; letter-spacing: -.065em; text-transform: uppercase; }
+    .results-head p { margin: 5px 0 0; color: var(--muted); font: 700 .77rem ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+    .reset { background: var(--yellow); text-transform: uppercase; }
+    .results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 2px solid var(--ink); border-left: 2px solid var(--ink); }
+    .idea { width: 100%; min-height: 139px; padding: 17px; border: 0; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); border-radius: 0; background: var(--white); color: var(--ink); text-align: left; cursor: pointer; }
+    .idea:hover { background: #f8e8ad; }
+    .idea[aria-current="true"] { background: var(--yellow); }
+    .idea-code { display: block; margin-bottom: 11px; color: var(--muted); font: 700 .68rem ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+    .idea-title { display: block; margin-bottom: 6px; font-size: 1.06rem; font-weight: 900; letter-spacing: -.03em; text-transform: uppercase; }
+    .idea-desc { display: block; font-size: .8rem; line-height: 1.36; }
+    .footer { margin: 32px 0 0; padding-top: 12px; border-top: 2px solid var(--ink); color: var(--muted); font-size: .78rem; line-height: 1.4; }
+
+    @media (max-width: 850px) {
+      .hero { grid-template-columns: minmax(0, 1fr) 190px; min-height: 275px; }
+      .hero-number strong { font-size: 9rem; }
+      .axes { grid-template-columns: 1fr; }
+      .axis { border-right: 0; border-bottom: 2px solid var(--ink); }
+      .axis:nth-child(3) { border-bottom: 0; }
+      .axis p { min-height: 0; }
+      .explorer { grid-template-columns: 1fr; }
+      .detail-panel { min-height: 320px; border-left: 0; border-top: 2px solid var(--ink); }
+      .results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 550px) {
+      .page { width: calc(100% - 24px); }
+      .masthead { min-height: 54px; font-size: .65rem; }
+      .masthead-right { display: none; }
+      .hero { display: block; }
+      .hero-copy { min-height: 275px; padding: 25px 0; }
+      h1 { font-size: clamp(3.1rem, 13vw, 5rem); }
+      .intro { margin-top: 26px; }
+      .hero-number { min-height: 132px; padding: 14px 18px; border-left: 0; border-top: 2px solid var(--ink); }
+      .hero-number strong { position: absolute; right: 22px; bottom: 12px; font-size: 7rem; }
+      .hero-number::before { width: 120px; height: 120px; top: -58px; right: 60px; border-width: 20px; }
+      .section-index { font-size: .66rem; }
+      .section-index span:last-child { display: none; }
+      .panel-top { padding-inline: 13px; }
+      .panel-note { max-width: 145px; }
+      .detail-panel { padding: 21px; }
+      .results { grid-template-columns: 1fr; }
+      .idea { min-height: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { .node circle.dot { transition: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="masthead">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span>OhioX / Tech Day</span></div>
+      <span class="masthead-right">Workshop / Idea index</span>
+    </div>
+    <header class="hero">
+      <div class="hero-copy">
+        <div>
+          <p class="eyebrow">01 / Explore the possibilities</p>
+          <h1>Demo<br>idea <span>cube.</span></h1>
+        </div>
+        <p class="intro">Three choices on each axis make 27 starting points. Choose axis values, drag the cube, or select an idea below.</p>
+      </div>
+      <div class="hero-number" aria-label="27 combinations from three axes with three values each">
+        <span>Combinations</span><strong>27</strong><span>3 × 3 × 3</span>
+      </div>
+    </header>
+
+    <div class="section-index"><span>02 / Set the coordinates</span><span>One value on each axis</span></div>
+    <section class="axes" aria-label="Filter the three axes">
+      <div class="axis">
+        <div class="axis-head"><h2>Interaction</h2><span class="axis-code">X axis</span></div>
+        <p>What the visitor does with a hand or pointer.</p>
+        <div class="choices" data-axis="interaction" aria-label="Interaction filter"></div>
+      </div>
+      <div class="axis">
+        <div class="axis-head"><h2>Payoff</h2><span class="axis-code">Y axis</span></div>
+        <p>What makes the result satisfying.</p>
+        <div class="choices" data-axis="payoff" aria-label="Payoff filter"></div>
+      </div>
+      <div class="axis">
+        <div class="axis-head"><h2>Build effort</h2><span class="axis-code">Z axis</span></div>
+        <p>How much behavior the demo needs.</p>
+        <div class="choices" data-axis="effort" aria-label="Build effort filter"></div>
+      </div>
+    </section>
+
+    <div class="section-index"><span>03 / Navigate the cube</span><span>Each point is one idea</span></div>
+    <section class="explorer" aria-label="Interactive 3D idea cube">
+      <div class="cube-panel">
+        <div class="panel-top"><h2>27-point cube</h2><span class="panel-note">Drag to rotate · select a point</span></div>
+        <div class="cube-wrap">
+          <svg id="cube" viewBox="0 0 620 520" role="group" aria-label="Rotatable cube with labeled X interaction, Y payoff, and Z build effort axes. Each axis has three values and each point is a demo idea."></svg>
+        </div>
+        <div class="cube-key" aria-label="Point colors show payoff">
+          <span class="key-item"><span class="swatch visual"></span>Visual</span>
+          <span class="key-item"><span class="swatch discover"></span>Discover</span>
+          <span class="key-item"><span class="swatch challenge"></span>Challenge</span>
+        </div>
+        <div class="view-controls" aria-label="Rotate cube">
+          <button type="button" data-rotate="left" aria-label="Rotate cube left">↶ Left</button>
+          <button type="button" data-rotate="right" aria-label="Rotate cube right">↷ Right</button>
+          <button type="button" data-rotate="up" aria-label="Tilt cube up">↑ Up</button>
+          <button type="button" data-rotate="down" aria-label="Tilt cube down">↓ Down</button>
+          <button type="button" data-rotate="reset">Reset view</button>
+        </div>
+      </div>
+      <aside class="detail-panel" aria-live="polite">
+        <span id="detail-code" class="detail-kicker"></span>
+        <h2 id="detail-title"></h2>
+        <p id="detail-desc"></p>
+        <div id="detail-tags" class="tag-row"></div>
+        <span class="detail-label">Camera and pointer</span>
+        <p id="detail-input" class="detail-input"></p>
+      </aside>
+    </section>
+
+    <section aria-labelledby="results-title">
+      <div class="results-head">
+        <div><h2 id="results-title">Explore the ideas</h2><p id="results-count"></p></div>
+        <button class="reset" id="clear-filters" type="button">Show all 27</button>
+      </div>
+      <div id="results" class="results"></div>
+    </section>
+    <p class="footer">Effort is relative to this one-file workshop format. Every idea can use the existing camera and pointer input.</p>
+  </main>
+
+  <script>
+    (() => {
+      const axes = {
+        interaction: [
+          { label: 'Move', detail: 'Position continuously changes the scene.', input: 'Move a fingertip or pointer.' },
+          { label: 'Dwell', detail: 'Hold over a target to trigger it.', input: 'Hold a fingertip or pointer over a target.' },
+          { label: 'Act', detail: 'Use a deliberate activation gesture.', input: 'Pinch, click, touch, or press Space.' }
+        ],
+        payoff: [
+          { label: 'Visual', detail: 'Make an expressive effect.' },
+          { label: 'Discover', detail: 'Reveal something hidden.' },
+          { label: 'Challenge', detail: 'Try to meet a goal.' }
+        ],
+        effort: [
+          { label: 'Shapes', detail: 'Simple drawing and basic rules.' },
+          { label: 'Motion', detail: 'Animated objects and timing.' },
+          { label: 'Physics', detail: 'Bounded particles or forces.' }
+        ]
+      };
+
+      // Each layer is one build-effort level. Rows are payoff; columns are interaction.
+      const concepts = [
+        [
+          [
+            ['Color Trail', 'Sweep a fingertip to draw a shifting ribbon of colored shapes.'],
+            ['Bloom Garden', 'Hold over a seed to grow a geometric flower.'],
+            ['Stamp Studio', 'Place colorful shapes with each pinch or press.']
+          ],
+          [
+            ['Spotlight Reveal', 'Move a spotlight to uncover a hidden illustration.'],
+            ['Mystery Tiles', 'Hold over tiles to reveal pieces of a picture.'],
+            ['Flip Gallery', 'Activate cards to reveal the image beneath.']
+          ],
+          [
+            ['Maze Guide', 'Guide a cursor through a simple maze without touching walls.'],
+            ['Target Hold', 'Hold on three targets in sequence before time runs out.'],
+            ['Shape Match', 'Activate the shape that matches the prompt.']
+          ]
+        ],
+        [
+          [
+            ['Ribbon Wake', 'Motion leaves a flowing ribbon that slowly fades.'],
+            ['Ripple Pool', 'Hold still to send animated rings across the screen.'],
+            ['Firework Brush', 'Launch a small animated burst wherever you activate.']
+          ],
+          [
+            ['Orbit Explorer', 'Move to bring drifting objects into focus.'],
+            ['Constellation Finder', 'Hold near moving stars to reveal their pattern.'],
+            ['Kinetic Windows', 'Activate animated windows to reveal a scene.']
+          ],
+          [
+            ['Falling Stars', 'Move a catcher under falling stars and build a score.'],
+            ['Moving Bullseye', 'Hold on a moving target long enough to score.'],
+            ['Catch the Comets', 'Activate when a comet crosses the target zone.']
+          ]
+        ],
+        [
+          [
+            ['Particle Stream', 'Steer a stream of particles with your movement.'],
+            ['Gravity Well', 'Hold still to pull nearby particles into a spiral.'],
+            ['Vortex Painter', 'Activate to create a temporary swirling force.']
+          ],
+          [
+            ['Magnetic Map', 'Move a magnet to separate particles hiding a map.'],
+            ['Particle X-Ray', 'Hold over a cloud to clear particles and expose a clue.'],
+            ['Bubble Anatomy', 'Activate bubbles to uncover objects inside.']
+          ],
+          [
+            ['Ball Balance', 'Guide a rolling ball through checkpoints.'],
+            ['Orbit Keeper', 'Hold a force in place to keep a ball inside a ring.'],
+            ['Pinball Flick', 'Activate a paddle to send a ball toward targets.']
+          ]
+        ]
+      ];
+
+      const ideas = [];
+      for (let e = 0; e < 3; e++) {
+        for (let p = 0; p < 3; p++) {
+          for (let i = 0; i < 3; i++) {
+            const [title, description] = concepts[e][p][i];
+            ideas.push({ id: ideas.length, i, p, e, title, description });
+          }
+        }
+      }
+
+      const $ = (selector) => document.querySelector(selector);
+      const svg = $('#cube');
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const filter = { interaction: null, payoff: null, effort: null };
+      let selected = ideas[0];
+      let yaw = -0.55;
+      let pitch = -0.36;
+      let drag = null;
+
+      function svgElement(name, attributes = {}) {
+        const element = document.createElementNS(svgNS, name);
+        for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+        return element;
+      }
+
+      function coordinates(i, p, e) {
+        return { x: (i - 1) * 128, y: (p - 1) * 128, z: (e - 1) * 128 };
+      }
+
+      function project(point) {
+        const x1 = point.x * Math.cos(yaw) + point.z * Math.sin(yaw);
+        const z1 = -point.x * Math.sin(yaw) + point.z * Math.cos(yaw);
+        const y2 = point.y * Math.cos(pitch) - z1 * Math.sin(pitch);
+        const z2 = point.y * Math.sin(pitch) + z1 * Math.cos(pitch);
+        const scale = 680 / (680 - z2);
+        return { x: 310 + x1 * scale, y: 255 + y2 * scale, z: z2, scale };
+      }
+
+      function isVisible(idea) {
+        return (filter.interaction === null || idea.i === filter.interaction) &&
+          (filter.payoff === null || idea.p === filter.payoff) &&
+          (filter.effort === null || idea.e === filter.effort);
+      }
+
+      function renderAxisGuides(projected) {
+        const guides = svgElement('g', { class: 'axis-guides', 'aria-hidden': 'true' });
+        const selectedPoint = projected.get(selected.id);
+        const rails = [
+          { axis: 'interaction', code: 'X', index: 'i', side: 'below', points: [-128, 0, 128].map((x) => project({ x, y: 144, z: 128 })) },
+          { axis: 'payoff', code: 'Y', index: 'p', side: 'left', points: [-128, 0, 128].map((y) => project({ x: -144, y, z: 128 })) },
+          { axis: 'effort', code: 'Z', index: 'e', side: 'above', points: [-128, 0, 128].map((z) => project({ x: 128, y: -144, z })) }
+        ];
+
+        for (const rail of rails) {
+          const tick = rail.points[selected[rail.index]];
+          guides.append(svgElement('line', {
+            class: 'axis-connector', x1: selectedPoint.x, y1: selectedPoint.y,
+            x2: tick.x, y2: tick.y
+          }));
+          guides.append(svgElement('line', {
+            class: 'axis-rail', x1: rail.points[0].x, y1: rail.points[0].y,
+            x2: rail.points[2].x, y2: rail.points[2].y
+          }));
+
+          rail.points.forEach((point, index) => {
+            guides.append(svgElement('rect', {
+              class: 'axis-tick', x: point.x - 3, y: point.y - 3, width: 6, height: 6
+            }));
+            const label = `${rail.code} / ${axes[rail.axis][index].label.toUpperCase()}`;
+            const width = label.length * 6.5 + 14;
+            const rawX = point.x + (rail.side === 'left' ? -53 : 0);
+            const rawY = point.y + (rail.side === 'below' ? 18 : rail.side === 'above' ? -19 : 0);
+            const x = Math.max(width / 2 + 5, Math.min(615 - width / 2, rawX));
+            const y = Math.max(12, Math.min(508, rawY));
+            const chip = svgElement('g', { class: index === selected[rail.index] ? 'axis-chip is-active' : 'axis-chip' });
+            chip.append(svgElement('rect', { x: x - width / 2, y: y - 10, width, height: 20 }));
+            const text = svgElement('text', { x, y: y + .5 });
+            text.textContent = label;
+            chip.append(text);
+            guides.append(chip);
+          });
+        }
+        return guides;
+      }
+
+      function renderCube() {
+        svg.replaceChildren();
+        const projected = new Map(ideas.map((idea) => [idea.id, project(coordinates(idea.i, idea.p, idea.e))]));
+        const lines = svgElement('g', { 'aria-hidden': 'true' });
+        for (const idea of ideas) {
+          const from = projected.get(idea.id);
+          for (const axis of ['i', 'p', 'e']) {
+            if (idea[axis] === 2) continue;
+            const next = ideas.find((candidate) => candidate.i === idea.i + (axis === 'i' ? 1 : 0) && candidate.p === idea.p + (axis === 'p' ? 1 : 0) && candidate.e === idea.e + (axis === 'e' ? 1 : 0));
+            const to = projected.get(next.id);
+            const outer = ['i', 'p', 'e'].filter((key) => key !== axis).every((key) => idea[key] !== 1);
+            lines.append(svgElement('line', {
+              x1: from.x, y1: from.y, x2: to.x, y2: to.y,
+              class: outer ? 'cube-edge' : 'cube-grid',
+              opacity: outer ? .57 : .28
+            }));
+          }
+        }
+        svg.append(lines);
+        svg.append(renderAxisGuides(projected));
+
+        const nodes = [...ideas].sort((a, b) => projected.get(a.id).z - projected.get(b.id).z);
+        const colors = ['#df392e', '#2456a6', '#f3c637'];
+        for (const idea of nodes) {
+          const point = projected.get(idea.id);
+          const visible = isVisible(idea);
+          const active = idea.id === selected.id;
+          const group = svgElement('g', {
+            class: 'node', 'data-node': idea.id, role: 'button', tabindex: '0',
+            'aria-label': `${idea.title}: ${axes.interaction[idea.i].label}, ${axes.payoff[idea.p].label}, ${axes.effort[idea.e].label}`,
+            'aria-pressed': active ? 'true' : 'false'
+          });
+          if (active) group.append(svgElement('circle', { class: 'halo', cx: point.x, cy: point.y, r: 19 }));
+          group.append(svgElement('circle', {
+            class: 'dot', cx: point.x, cy: point.y,
+            r: active ? 12 : 9, fill: colors[idea.p],
+            opacity: visible ? (point.z > 0 ? 1 : .76) : .16
+          }));
+          group.append(svgElement('circle', { class: 'hit', cx: point.x, cy: point.y, r: 20 }));
+          const title = svgElement('title');
+          title.textContent = idea.title;
+          group.append(title);
+          group.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              selectIdea(idea);
+            }
+          });
+          svg.append(group);
+        }
+      }
+
+      function renderControls() {
+        for (const [axis, values] of Object.entries(axes)) {
+          const container = document.querySelector(`[data-axis="${axis}"]`);
+          container.replaceChildren();
+          [{ label: 'All', value: null }, ...values.map((item, value) => ({ label: item.label, value }))].forEach((option) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'choice';
+            button.textContent = option.label;
+            button.setAttribute('aria-pressed', String(filter[axis] === option.value));
+            button.addEventListener('click', () => {
+              filter[axis] = option.value;
+              const firstVisible = ideas.find(isVisible);
+              if (firstVisible && !isVisible(selected)) selected = firstVisible;
+              render();
+            });
+            container.append(button);
+          });
+        }
+      }
+
+      function renderDetail() {
+        $('#detail-code').textContent = `IDEA ${String(selected.id + 1).padStart(2, '0')} / 27`;
+        $('#detail-title').textContent = selected.title;
+        $('#detail-desc').textContent = selected.description;
+        $('#detail-input').textContent = `${axes.interaction[selected.i].input} ${axes.interaction[selected.i].detail}`;
+        const tags = $('#detail-tags');
+        tags.replaceChildren();
+        for (const [axis, value] of [['interaction', selected.i], ['payoff', selected.p], ['effort', selected.e]]) {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = `${axis === 'effort' ? 'Build effort' : axis[0].toUpperCase() + axis.slice(1)}: ${axes[axis][value].label}`;
+          tags.append(tag);
+        }
+      }
+
+      function renderResults() {
+        const matches = ideas.filter(isVisible);
+        $('#results-count').textContent = `${matches.length} of 27 ideas shown`;
+        const results = $('#results');
+        results.replaceChildren();
+        for (const idea of matches) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'idea';
+          button.setAttribute('aria-current', String(idea.id === selected.id));
+          const code = document.createElement('span');
+          code.className = 'idea-code';
+          code.textContent = `${String(idea.id + 1).padStart(2, '0')} · ${axes.interaction[idea.i].label} / ${axes.payoff[idea.p].label} / ${axes.effort[idea.e].label}`;
+          const title = document.createElement('span');
+          title.className = 'idea-title';
+          title.textContent = idea.title;
+          const description = document.createElement('span');
+          description.className = 'idea-desc';
+          description.textContent = idea.description;
+          button.append(code, title, description);
+          button.addEventListener('click', () => selectIdea(idea));
+          results.append(button);
+        }
+      }
+
+      function render() {
+        renderControls();
+        renderCube();
+        renderDetail();
+        renderResults();
+      }
+
+      function selectIdea(idea) {
+        selected = idea;
+        renderCube();
+        renderDetail();
+        renderResults();
+      }
+
+      svg.addEventListener('pointerdown', (event) => {
+        drag = { x: event.clientX, y: event.clientY, yaw, pitch, moved: false, node: event.target.closest('[data-node]')?.dataset.node };
+        svg.setPointerCapture(event.pointerId);
+      });
+      svg.addEventListener('pointermove', (event) => {
+        if (!drag) return;
+        const dx = event.clientX - drag.x;
+        const dy = event.clientY - drag.y;
+        if (Math.hypot(dx, dy) > 5) drag.moved = true;
+        if (!drag.moved) return;
+        yaw = drag.yaw + dx * .007;
+        pitch = Math.max(-1.3, Math.min(1.3, drag.pitch - dy * .007));
+        svg.classList.add('dragging');
+        renderCube();
+      });
+      svg.addEventListener('pointerup', () => {
+        if (drag && !drag.moved && drag.node !== undefined) selectIdea(ideas[Number(drag.node)]);
+        drag = null;
+        svg.classList.remove('dragging');
+      });
+      svg.addEventListener('pointercancel', () => {
+        drag = null;
+        svg.classList.remove('dragging');
+      });
+
+      document.querySelectorAll('[data-rotate]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const direction = button.dataset.rotate;
+          if (direction === 'reset') { yaw = -.55; pitch = -.36; }
+          if (direction === 'left') yaw -= .25;
+          if (direction === 'right') yaw += .25;
+          if (direction === 'up') pitch = Math.min(1.3, pitch + .25);
+          if (direction === 'down') pitch = Math.max(-1.3, pitch - .25);
+          renderCube();
+        });
+      });
+      $('#clear-filters').addEventListener('click', () => {
+        filter.interaction = filter.payoff = filter.effort = null;
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
