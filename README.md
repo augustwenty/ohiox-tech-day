@@ -29,10 +29,36 @@ choose **Pointer / keys**.
 Create one `.jsx` file in `src/demos/`. It appears in the launcher without any
 menu or route changes. See [docs/adding-a-demo.md](docs/adding-a-demo.md).
 
-## Deploy
+## Workshop display laptop
 
-The included `.github/workflows/pages.yml` builds pull requests and deploys
-pushes to `main`. In GitHub, choose **Settings → Pages → GitHub Actions** once.
+Use the local development server for the live workshop. It avoids waiting for a
+hosted deployment and keeps camera access on `localhost`:
+
+```sh
+npm ci
+npm run dev
+```
+
+Leave the server running. After a demo is merged to `main`, update the display
+laptop in another terminal:
+
+```sh
+git pull --ff-only
+```
+
+Vite will usually notice the updated source automatically; refresh the browser
+if it does not. If `package-lock.json` changed, stop the server, run `npm ci`,
+and start it again. Ordinary one-file demo PRs should not change dependencies.
+
+## CI and Pages
+
+The included `.github/workflows/pages.yml` installs dependencies, runs tests,
+and builds every pull request targeting `main`. After a change reaches `main`,
+the same workflow also deploys the build to GitHub Pages as a convenient hosted
+copy. The local display laptop does not need to wait for that deployment.
+
+To enable the hosted copy, choose **Settings → Pages → GitHub Actions** once in
+GitHub. Pages is optional; pull-request checks work without using the Pages URL.
 
 ## Deliberate omissions
 

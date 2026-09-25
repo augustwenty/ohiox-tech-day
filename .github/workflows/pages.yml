@@ -1,4 +1,4 @@
-name: Build and deploy Pages
+name: CI and Pages
 
 on:
   pull_request:
@@ -26,6 +26,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Run tests
+        run: npm test
       - name: Build static site
         env:
           REPOSITORY_NAME: ${{ github.event.repository.name }}
@@ -53,4 +55,4 @@ jobs:
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
