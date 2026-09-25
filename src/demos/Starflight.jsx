@@ -18,6 +18,7 @@ const randomLane = () => Math.random() * 1.65 - 0.825;
 function createScene() {
   return {
     time: 0,
+    travel: 0,
     ship: { x: 0, y: 0, bank: 0 },
     enemies: [
       { id: 1, x: 0, y: 0, z: 0.68, kind: "drone", spin: 0 },
@@ -28,11 +29,16 @@ function createScene() {
     bursts: [],
     stars: Array.from({ length: 85 }, () => ({ x: randomLane() * 1.8, y: randomLane() * 1.8, z: Math.random(), size: Math.random() * 1.6 + 0.4 })),
     nextId: 4,
+    wave: 0,
     spawnIn: 1.8,
     score: 0,
     shields: 3,
     actionWasDown: false,
     flash: 0,
+    hitFlash: 0,
+    launchFlash: 0,
+    shake: 0,
+    slowMo: 0,
     invulnerable: 0,
     lastMessage: "ALIGN WITH A TARGET · PINCH TO FIRE",
     messageTime: 3,
@@ -63,9 +69,51 @@ function lockedEnemy(scene) {
   return best;
 }
 
-function addBurst(scene, x, y, color, size = 1) {
-  scene.bursts.push({ id: scene.nextId++, x, y, color, age: 0, size });
+function paceFor(score) {
+  return 1 + Math.min(1.15, score / 700);
+}
+
+function spawnFormation(scene) {
+  const shape = scene.wave % 3;
+  const center = clamp(randomLane() * 0.45, -0.32, 0.32);
+  const direction = scene.wave % 2 ? 1 : -1;
+  const positions = shape === 0
+    ? [[-0.38, 0.18, 0.10], [0, -0.16, 0], [0.38, 0.18, 0.10]]
+    : shape === 1
+      ? [[-0.4, -0.38, 0], [-0.1, 0, 0.11], [0.2, 0.38, 0.22]]
+      : [[-0.55, -0.22, 0], [0, 0.32, 0.14], [0.55, -0.22, 0]];
+
+  for (const [offsetX, y, depth] of positions) {
+    const baseX = clamp(center + offsetX * direction, -0.82, 0.82);
+    scene.enemies.push({
+      id: scene.nextId++,
+      x: baseX,
+      baseX,
+      y,
+      z: 1.12 + depth,
+      kind: shape === 2 && offsetX === 0 ? "asteroid" : "drone",
+      drift: shape === 1 ? direction * 0.42 : 0,
+      spin: Math.random() * TAU,
+    });
+  }
+  scene.wave += 1;
+}
+
+function addBurst(scene, x, y, z, color, size = 1, locked = false) {
+  scene.bursts.push({ id: scene.nextId++, x, y, z, color, age: 0, size, locked });
   if (scene.bursts.length > 22) scene.bursts.shift();
+}
+
+function targetHit(scene, target, locked) {
+  scene.enemies = scene.enemies.filter((enemy) => enemy.id !== target.id);
+  const points = target.kind === "asteroid" ? 50 : 100;
+  scene.score += points;
+  addBurst(scene, target.x, target.y, target.z, locked ? "#a8ffff" : "#ffca70", locked ? 1.65 : 1.35, locked);
+  scene.shake = Math.max(scene.shake, locked ? 10 : 6);
+  scene.slowMo = 0.14;
+  scene.hitFlash = 1;
+  scene.lastMessage = `${locked ? "LOCK HIT" : "DIRECT HIT"} · +${points}`;
+  scene.messageTime = 1;
 }
 
 function fire(scene) {
@@ -82,6 +130,7 @@ function fire(scene) {
     targetZ: target?.z ?? 0.58,
   });
   if (scene.missiles.length > 10) scene.missiles.shift();
+  scene.launchFlash = 1;
   scene.lastMessage = target ? "MISSILE LOCKED" : "MISSILE AWAY";
   scene.messageTime = 0.8;
 }
@@ -89,7 +138,15 @@ function fire(scene) {
 function stepScene(scene, input, seconds) {
   const dt = Math.min(seconds, 0.05);
   scene.time += dt;
+  scene.slowMo = Math.max(0, scene.slowMo - dt);
+  const motionDt = scene.slowMo > 0 ? dt * 0.3 : dt;
+  const pace = paceFor(scene.score);
+  scene.travel += motionDt * pace;
   scene.flash = Math.max(0, scene.flash - dt * 2.8);
+  scene.hitFlash = Math.max(0, scene.hitFlash - dt * 8);
+  scene.launchFlash = Math.max(0, scene.launchFlash - dt * 7);
+  scene.shake *= Math.exp(-dt * 18);
+  if (scene.shake < 0.1) scene.shake = 0;
   scene.invulnerable = Math.max(0, scene.invulnerable - dt);
   scene.messageTime = Math.max(0, scene.messageTime - dt);
 
@@ -106,7 +163,7 @@ function stepScene(scene, input, seconds) {
   if (actionStarted && scene.playing) fire(scene);
 
   for (const star of scene.stars) {
-    star.z -= dt * (0.1 + star.size * 0.05);
+    star.z -= motionDt * (0.18 + star.size * 0.1) * pace;
     if (star.z < 0) {
       star.z = 1;
       star.x = randomLane() * 1.8;
@@ -117,34 +174,27 @@ function stepScene(scene, input, seconds) {
   scene.bursts = scene.bursts.filter((burst) => burst.age < 0.55);
   if (!scene.playing || !input.active) return;
 
-  scene.spawnIn -= dt;
+  scene.spawnIn -= motionDt;
   if (scene.spawnIn <= 0) {
-    scene.enemies.push({ id: scene.nextId++, x: randomLane(), y: randomLane(), z: 1.15, kind: Math.random() < 0.22 ? "asteroid" : "drone", spin: Math.random() * TAU });
-    scene.spawnIn = Math.max(0.65, 1.35 - scene.score / 2500) + Math.random() * 0.4;
+    if (scene.enemies.length <= 9) spawnFormation(scene);
+    scene.spawnIn = Math.max(1.4, 2.25 / pace) + Math.random() * 0.25;
   }
 
-  const speed = Math.min(0.43, 0.27 + scene.score / 9000);
+  const speed = 0.31 * pace;
   for (const enemy of scene.enemies) {
-    enemy.z -= dt * speed;
-    enemy.spin += dt * (enemy.kind === "asteroid" ? 0.7 : 1.5);
+    enemy.z -= motionDt * speed;
+    enemy.spin += motionDt * (enemy.kind === "asteroid" ? 0.7 : 1.5);
+    if (enemy.baseX !== undefined) enemy.x = clamp(enemy.baseX + enemy.drift * (1 - clamp(enemy.z, 0, 1)), -0.88, 0.88);
   }
   for (const missile of scene.missiles) {
-    missile.age += dt;
+    missile.age += motionDt;
     if (missile.age < missile.duration) continue;
     const target = scene.enemies.find((enemy) => enemy.id === missile.targetId);
     if (target) {
-      scene.enemies = scene.enemies.filter((enemy) => enemy.id !== target.id);
-      scene.score += target.kind === "asteroid" ? 50 : 100;
-      addBurst(scene, target.x, target.y, target.kind === "asteroid" ? "#ffca70" : "#76f4ff", 1.4);
-      scene.lastMessage = target.kind === "asteroid" ? "+50 ASTEROID" : "+100 TARGET DOWN";
-      scene.messageTime = 1;
+      targetHit(scene, target, true);
     } else if (missile.targetId === null) {
       const stray = scene.enemies.find((enemy) => enemy.z > 0.15 && enemy.z < 0.75 && Math.hypot(enemy.x - missile.x, enemy.y - missile.y) < 0.18);
-      if (stray) {
-        scene.enemies = scene.enemies.filter((enemy) => enemy.id !== stray.id);
-        scene.score += stray.kind === "asteroid" ? 50 : 100;
-        addBurst(scene, stray.x, stray.y, "#76f4ff", 1.4);
-      }
+      if (stray) targetHit(scene, stray, false);
     }
   }
   scene.missiles = scene.missiles.filter((missile) => missile.age < missile.duration);
@@ -155,7 +205,8 @@ function stepScene(scene, input, seconds) {
       scene.shields = Math.max(0, scene.shields - 1);
       scene.invulnerable = 1.2;
       scene.flash = 1;
-      addBurst(scene, scene.ship.x, scene.ship.y, "#ff6c80", 2);
+      scene.shake = Math.max(scene.shake, 16);
+      addBurst(scene, scene.ship.x, scene.ship.y, 0, "#ff6c80", 2);
       scene.lastMessage = scene.shields > 0 ? "HULL HIT!" : "MISSION OVER";
       scene.messageTime = 1.3;
       if (scene.shields <= 0) scene.playing = false;
@@ -172,9 +223,18 @@ function path(context, points, fill, stroke, lineWidth = 1) {
   if (stroke) { context.strokeStyle = stroke; context.lineWidth = lineWidth; context.stroke(); }
 }
 
-function drawEnemy(context, enemy, width, height, isLocked) {
+function drawEnemy(context, enemy, width, height, isLocked, pace) {
   const at = project(width, height, enemy.x, enemy.y, enemy.z);
   const size = clamp(26 * at.scale, 5, 42);
+  if (enemy.kind === "drone") {
+    const tail = project(width, height, enemy.x, enemy.y, Math.min(1.15, enemy.z + 0.08 * pace));
+    context.strokeStyle = `rgba(255, 92, 137, ${0.28 + (pace - 1) * 0.18})`;
+    context.lineWidth = Math.max(2, size * 0.18);
+    context.shadowColor = "#ff547b";
+    context.shadowBlur = 12;
+    context.beginPath(); context.moveTo(at.x, at.y + size * 0.3); context.lineTo(tail.x, tail.y); context.stroke();
+    context.shadowBlur = 0;
+  }
   context.save();
   context.translate(at.x, at.y);
   context.rotate(enemy.spin * (enemy.kind === "asteroid" ? 0.18 : 0.08));
@@ -215,6 +275,11 @@ function drawShip(context, scene, width, height) {
   context.shadowColor = "#5bf4ff";
   context.shadowBlur = 22;
   path(context, [[-13, 28], [0, 28 + flame], [13, 28]], "#3ceaff", null);
+  if (scene.launchFlash > 0) {
+    context.shadowColor = "#fff2b4";
+    context.shadowBlur = 35;
+    path(context, [[0, -65 - scene.launchFlash * 14], [15, -35], [0, -43], [-15, -35]], `rgba(255, 248, 196, ${scene.launchFlash})`, null);
+  }
   context.shadowBlur = 0;
   path(context, [[0, -44], [18, 1], [57, 17], [65, 31], [22, 24], [0, 35], [-22, 24], [-65, 31], [-57, 17], [-18, 1]], "#d8ebff", "#58eaff", 2.5);
   path(context, [[0, -39], [13, 4], [0, 24], [-13, 4]], "#183556", "#a6efff", 2);
@@ -278,6 +343,10 @@ function drawScene(canvas, scene, input) {
   context.fillStyle = sky;
   context.fillRect(0, 0, width, height);
 
+  const pace = paceFor(scene.score);
+  context.save();
+  context.translate(Math.sin(scene.time * 119) * scene.shake, Math.cos(scene.time * 97) * scene.shake * 0.65);
+
   const horizon = context.createRadialGradient(width * 0.5, height * 0.31, 5, width * 0.5, height * 0.31, width * 0.56);
   horizon.addColorStop(0, "rgba(93, 200, 255, .44)");
   horizon.addColorStop(1, "rgba(93, 200, 255, 0)");
@@ -292,7 +361,7 @@ function drawScene(canvas, scene, input) {
     context.beginPath(); context.moveTo(far.x, far.y); context.lineTo(near.x, near.y); context.stroke();
   }
   for (let index = 0; index < 9; index += 1) {
-    const z = (index / 9 + scene.time * 0.17) % 1;
+    const z = (index / 9 + scene.travel * 0.25) % 1;
     const left = project(width, height, -1, 1, z);
     const right = project(width, height, 1, 1, z);
     context.beginPath(); context.moveTo(left.x, left.y); context.lineTo(right.x, right.y); context.stroke();
@@ -300,14 +369,14 @@ function drawScene(canvas, scene, input) {
 
   for (const star of scene.stars) {
     const at = project(width, height, star.x, star.y, star.z);
-    const tail = project(width, height, star.x, star.y, Math.min(1, star.z + 0.035));
+    const tail = project(width, height, star.x, star.y, Math.min(1, star.z + 0.03 + pace * 0.02));
     context.strokeStyle = `rgba(205, 239, 255, ${0.2 + (1 - star.z) * 0.65})`;
-    context.lineWidth = star.size;
+    context.lineWidth = star.size * (0.8 + pace * 0.25);
     context.beginPath(); context.moveTo(at.x, at.y); context.lineTo(tail.x, tail.y); context.stroke();
   }
 
   const lock = scene.playing && input.active ? lockedEnemy(scene) : null;
-  scene.enemies.slice().sort((a, b) => b.z - a.z).forEach((enemy) => drawEnemy(context, enemy, width, height, enemy.id === lock?.id));
+  scene.enemies.slice().sort((a, b) => b.z - a.z).forEach((enemy) => drawEnemy(context, enemy, width, height, enemy.id === lock?.id, pace));
 
   for (const missile of scene.missiles) {
     const progress = clamp(missile.age / missile.duration, 0, 1);
@@ -317,11 +386,17 @@ function drawScene(canvas, scene, input) {
     const eased = 1 - (1 - progress) ** 2;
     const x = origin.x + (destination.x - origin.x) * eased;
     const y = origin.y + (destination.y - origin.y) * eased;
-    context.strokeStyle = "#83faff";
-    context.lineWidth = 4 + (1 - progress) * 3;
+    const tailProgress = Math.max(0, eased - 0.3);
+    const tailX = origin.x + (destination.x - origin.x) * tailProgress;
+    const tailY = origin.y - 30 + (destination.y - origin.y + 30) * tailProgress;
     context.shadowColor = "#48eaff";
-    context.shadowBlur = 18;
-    context.beginPath(); context.moveTo(origin.x, origin.y - 30); context.lineTo(x, y); context.stroke();
+    context.shadowBlur = 22;
+    context.strokeStyle = "rgba(61, 231, 255, .38)";
+    context.lineWidth = 15;
+    context.beginPath(); context.moveTo(tailX, tailY); context.lineTo(x, y); context.stroke();
+    context.strokeStyle = "#e8ffff";
+    context.lineWidth = 3;
+    context.beginPath(); context.moveTo(tailX, tailY); context.lineTo(x, y); context.stroke();
     context.shadowBlur = 0;
     context.save();
     context.translate(x, y);
@@ -332,12 +407,19 @@ function drawScene(canvas, scene, input) {
   }
 
   for (const burst of scene.bursts) {
-    const at = project(width, height, burst.x, burst.y, 0.3);
-    const radius = burst.age * 95 * burst.size;
-    context.globalAlpha = 1 - burst.age / 0.55;
+    const at = project(width, height, burst.x, burst.y, burst.z);
+    const life = 1 - burst.age / 0.55;
+    const radius = (9 + burst.age * 125) * burst.size;
+    context.save();
+    context.globalAlpha = life;
+    context.globalCompositeOperation = "lighter";
+    context.shadowColor = burst.color;
+    context.shadowBlur = 25;
     context.strokeStyle = burst.color;
-    context.lineWidth = 4;
+    context.lineWidth = burst.locked ? 5 : 3;
     context.beginPath(); context.arc(at.x, at.y, radius, 0, TAU); context.stroke();
+    context.fillStyle = "#ffffff";
+    context.beginPath(); context.arc(at.x, at.y, Math.max(0, 14 - burst.age * 30) * burst.size, 0, TAU); context.fill();
     for (let spoke = 0; spoke < 8; spoke += 1) {
       const angle = spoke * TAU / 8 + burst.id;
       context.beginPath();
@@ -345,9 +427,27 @@ function drawScene(canvas, scene, input) {
       context.lineTo(at.x + Math.cos(angle) * radius * 1.2, at.y + Math.sin(angle) * radius * 1.2);
       context.stroke();
     }
-    context.globalAlpha = 1;
+    context.restore();
+    if (burst.locked && burst.age < 0.42) {
+      const bracket = 24 + burst.age * 65;
+      context.save();
+      context.globalAlpha = 1 - burst.age / 0.42;
+      context.strokeStyle = "#d4ffff";
+      context.lineWidth = 2;
+      context.strokeRect(at.x - bracket, at.y - bracket, bracket * 2, bracket * 2);
+      context.fillStyle = "#e7ffff";
+      context.font = "800 12px ui-monospace, monospace";
+      context.textAlign = "center";
+      context.fillText("LOCK HIT", at.x, at.y - bracket - 10);
+      context.restore();
+    }
   }
   drawShip(context, scene, width, height);
+  context.restore();
+  if (scene.hitFlash > 0) {
+    context.fillStyle = `rgba(187, 255, 255, ${scene.hitFlash * 0.18})`;
+    context.fillRect(0, 0, width, height);
+  }
   if (scene.flash > 0) {
     context.fillStyle = `rgba(255, 77, 113, ${scene.flash * 0.24})`;
     context.fillRect(0, 0, width, height);
@@ -358,8 +458,8 @@ function drawScene(canvas, scene, input) {
 export default function Starflight({ inputRef, paused }) {
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
-  if (sceneRef.current === null) sceneRef.current = createScene();
-  const hudRef = useRef({ score: 0, shields: 3, message: "ALIGN WITH A TARGET · PINCH TO FIRE", playing: true, active: false });
+  if (sceneRef.current === null || sceneRef.current.travel === undefined) sceneRef.current = createScene();
+  const hudRef = useRef({ score: 0, shields: 3, speed: 1, message: "ALIGN WITH A TARGET · PINCH TO FIRE", playing: true, active: false });
   const [hud, setHud] = useState(hudRef.current);
   const hudClock = useRef(0);
 
@@ -383,6 +483,7 @@ export default function Starflight({ inputRef, paused }) {
       const next = {
         score: scene.score,
         shields: scene.shields,
+        speed: Math.round(paceFor(scene.score) * 10) / 10,
         message: scene.messageTime > 0 ? scene.lastMessage : lockedEnemy(scene) ? "TARGET LOCKED · PINCH TO FIRE" : "ALIGN WITH A TARGET · PINCH TO FIRE",
         playing: scene.playing,
         active: input.active,
@@ -401,6 +502,7 @@ export default function Starflight({ inputRef, paused }) {
       <div style={{ position: "absolute", top: "clamp(100px, 14vh, 138px)", left: 22, display: "flex", gap: 28, padding: "10px 14px", border: "1px solid rgba(124, 231, 255, .4)", borderRadius: 12, background: "rgba(5, 19, 41, .68)", backdropFilter: "blur(6px)", ...labelStyle }}>
         <span><small style={{ display: "block", color: "#80dbed", fontSize: 10 }}>SCORE</small><strong style={{ fontSize: 24 }}>{hud.score.toString().padStart(5, "0")}</strong></span>
         <span><small style={{ display: "block", color: "#80dbed", fontSize: 10 }}>SHIELDS</small><strong style={{ fontSize: 24, color: hud.shields === 1 ? "#ff8299" : "#a0f6ff" }}>{"◆".repeat(hud.shields)}{"◇".repeat(3 - hud.shields)}</strong></span>
+        <span><small style={{ display: "block", color: "#80dbed", fontSize: 10 }}>SPEED</small><strong style={{ fontSize: 24, color: "#ffd078" }}>×{(hud.speed ?? 1).toFixed(1)}</strong></span>
       </div>
       <div style={{ position: "absolute", top: "clamp(179px, 25vh, 225px)", left: "50%", transform: "translateX(-50%)", maxWidth: "calc(100% - 32px)", padding: "7px 12px", borderRadius: 4, color: "#c4fbff", background: "rgba(5, 19, 41, .62)", textAlign: "center", whiteSpace: "nowrap", fontSize: "clamp(10px, 1.5vw, 14px)", fontWeight: 800, ...labelStyle }}>
         {hud.active ? hud.message : "SHOW YOUR HAND OR SELECT POINTER"}
