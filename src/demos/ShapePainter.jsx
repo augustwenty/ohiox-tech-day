@@ -8,7 +8,7 @@ export const demo = {
   order: 5,
   icon: "🎨",
   description: "Pinch to paint along a shape, then see how closely you traced it.",
-  instructions: "Trace the outline. Hold a pinch, pointer press, or Space to paint; release to lift the brush.",
+  instructions: "Guide the brush with your thumb. Hold a pinch, pointer press, or Space to paint; release to lift it.",
 };
 
 const WIDTH = 1000;
@@ -151,6 +151,11 @@ function guidePath(context, points) {
   context.closePath();
 }
 
+function anchorPoint(input) {
+  if (input.source !== "camera") return { x: input.x, y: input.y };
+  return input.tips.find((tip) => tip.id === "0-0") ?? null;
+}
+
 function playLayout(width, height) {
   const compact = width <= 720;
   const top = compact ? 175 : 150;
@@ -232,11 +237,11 @@ export default function ShapePainter({ inputRef, paused }) {
     syncHud(next);
   }
 
-  function inControl(input, control) {
+  function inControl(anchor, control) {
     const rect = control?.getBoundingClientRect();
-    if (!rect) return false;
-    const x = input.x * window.innerWidth;
-    const y = input.y * window.innerHeight;
+    if (!rect || !anchor) return false;
+    const x = anchor.x * window.innerWidth;
+    const y = anchor.y * window.innerHeight;
     return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
   }
 
@@ -245,31 +250,32 @@ export default function ShapePainter({ inputRef, paused }) {
     const input = inputRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const down = Boolean(input.active && input.action);
+    const anchor = anchorPoint(input);
+    const down = Boolean(input.active && anchor && input.action);
     const actionStarted = down && !scene.actionWasDown;
     scene.actionWasDown = down;
 
     if (input.source === "camera" && actionStarted) {
-      if (scene.phase === "painting" && inControl(input, finishRef.current)) finishRound(scene);
-      else if (scene.phase === "result" && inControl(input, nextRef.current)) nextRound();
+      if (scene.phase === "painting" && inControl(anchor, finishRef.current)) finishRound(scene);
+      else if (scene.phase === "result" && inControl(anchor, nextRef.current)) nextRound();
     }
 
     const current = sceneRef.current;
     if (!down) current.waitForRelease = false;
     const rect = canvas.getBoundingClientRect();
-    const x = input.x * window.innerWidth;
-    const y = input.y * window.innerHeight;
+    const x = anchor ? anchor.x * window.innerWidth : 0;
+    const y = anchor ? anchor.y * window.innerHeight : 0;
     const tracker = trackerRef.current;
     if (tracker) {
-      tracker.style.display = input.active ? "block" : "none";
+      tracker.style.display = input.active && anchor ? "block" : "none";
       tracker.style.left = `${x}px`;
       tracker.style.top = `${y}px`;
       tracker.dataset.down = down && !current.waitForRelease ? "true" : "false";
-      tracker.dataset.label = input.source === "camera" ? "INDEX FINGER" : "POINTER";
+      tracker.dataset.label = input.source === "camera" ? "THUMB" : "POINTER";
       tracker.dataset.align = x > rect.width - 150 ? "left" : "right";
     }
     const layout = playLayout(rect.width, rect.height);
-    const point = input.active ? {
+    const point = input.active && anchor ? {
       x: (x - rect.left - layout.left) / layout.scale,
       y: (y - rect.top - layout.top) / layout.scale,
     } : null;
@@ -331,7 +337,7 @@ export default function ShapePainter({ inputRef, paused }) {
         <div className="paint-stats"><span>Outline {hud.coverage}%</span><span>Time {hud.remaining}s</span></div>
       </div>
       <div className="paint-footer">
-        <span>{hud.phase === "ready" ? "Move to the outline, then pinch and hold to paint." : hud.phase === "painting" ? "Release to lift the brush; pinch again to keep tracing." : "Round complete!"}</span>
+        <span>{hud.phase === "ready" ? "Move the tracker to the outline, then hold to paint." : hud.phase === "painting" ? "Release to lift the brush; pinch again to keep tracing." : "Round complete!"}</span>
         {hud.phase === "painting" ? <button ref={finishRef} type="button" onPointerDown={(event) => { event.stopPropagation(); finishRound(sceneRef.current); syncHud(sceneRef.current); }} onClick={(event) => { if (event.detail === 0) { finishRound(sceneRef.current); syncHud(sceneRef.current); } }}>Finish drawing</button> : null}
       </div>
       {hud.phase === "result" ? (
