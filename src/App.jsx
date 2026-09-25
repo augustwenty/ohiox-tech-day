@@ -12,6 +12,19 @@ const HAND_CONNECTIONS = [
   [17, 18], [18, 19], [19, 20],
 ];
 
+const DEMO_SECTIONS = [
+  { kind: "GAME", title: "Games", symbol: "⌁" },
+  { kind: "VISUAL", title: "Visual Effects", symbol: "◉" },
+].map((section) => ({
+  ...section,
+  demos: DEMOS.filter((demo) => demo.kind === section.kind),
+})).filter((section) => section.demos.length > 0);
+
+const DEMO_ACCENTS = {
+  voronoi: "#a855f7",
+  "fluid-flow": "#22d3ee",
+};
+
 function demoFromHash() {
   const id = window.location.hash.replace(/^#\/?/, "");
   return DEMOS.find((demo) => demo.id === id) ?? null;
@@ -143,18 +156,23 @@ export default function App() {
           </header>
 
           <div className="landing-sections">
-            {DEMOS.map((demo) => (
-              <section className={`landing-panel ${demo.kind?.toLowerCase() ?? "demo"}`} key={demo.id}>
-                <h2><span className="section-symbol" aria-hidden="true">{demo.kind === "VISUAL" ? "◉" : "⌁"}</span>{demo.kind === "VISUAL" ? "Visual Effects" : "Games"}</h2>
-                <a
-                  className={`landing-card ${launcherPointer.id === demo.id ? "active" : ""}`}
-                  href={`#/${demo.id}`}
-                  ref={(node) => node ? cardRefs.current.set(demo.id, node) : cardRefs.current.delete(demo.id)}
-                  style={{ "--accent": demo.id === "voronoi" ? "#a855f7" : "#ff5a52", "--hold-progress": launcherPointer.id === demo.id ? launcherPointer.progress : 0 }}
-                >
-                  <span className={`mode-preview ${demo.id}`} aria-hidden="true">{demo.icon}</span>
-                  <strong>{demo.title.replace("Space ", "")}</strong>
-                </a>
+            {DEMO_SECTIONS.map((section) => (
+              <section className={`landing-panel ${section.kind.toLowerCase()}`} key={section.kind}>
+                <h2><span className="section-symbol" aria-hidden="true">{section.symbol}</span>{section.title}</h2>
+                <div className="landing-card-grid">
+                  {section.demos.map((demo) => (
+                    <a
+                      className={`landing-card ${launcherPointer.id === demo.id ? "active" : ""}`}
+                      href={`#/${demo.id}`}
+                      key={demo.id}
+                      ref={(node) => node ? cardRefs.current.set(demo.id, node) : cardRefs.current.delete(demo.id)}
+                      style={{ "--accent": DEMO_ACCENTS[demo.id] ?? "#ff5a52", "--hold-progress": launcherPointer.id === demo.id ? launcherPointer.progress : 0 }}
+                    >
+                      <span className={`mode-preview ${demo.id}`} aria-hidden="true">{demo.icon}</span>
+                      <strong>{demo.title.replace("Space ", "")}</strong>
+                    </a>
+                  ))}
+                </div>
               </section>
             ))}
           </div>
