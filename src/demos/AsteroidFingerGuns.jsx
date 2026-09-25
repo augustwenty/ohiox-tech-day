@@ -7,12 +7,13 @@ export const demo = {
   kind: "GAME",
   order: 2,
   icon: "☄️",
-  description: "Angle your finger through a 3D asteroid storm and let the lasers fly.",
-  instructions: "Point your index finger like a laser barrel. Firing is automatic; pointer mode aims from the ship.",
+  description: "Up to four hands angle their lasers through a 3D asteroid storm.",
+  instructions: "Bring up to four hands. Each index finger is an autofiring laser; pointer mode controls one ship.",
 };
 
 const TAU = Math.PI * 2;
 const COLORS = ["#ff7b54", "#ffb84d", "#ffe78a", "#69efff", "#b88cff"];
+const PLAYER_COLORS = ["#69efff", "#ff7fd1", "#ffe46b", "#9cff78"];
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const random = (min, max) => min + Math.random() * (max - min);
@@ -55,17 +56,27 @@ function createScene() {
   return {
     time: 0,
     score: 0,
+    playerScores: [0, 0, 0, 0],
     combo: 1,
     comboTime: 0,
     shields: 3,
     wave: 1,
     nextId: 1,
     spawnClock: 0.35,
-    fireClock: 0,
     shake: 0,
     flash: 0,
     gameOver: false,
-    aim: { ox: 0.5, oy: 0.72, dx: 0, dy: -1, active: false, camera: false },
+    aims: PLAYER_COLORS.map((color, index) => ({
+      id: index,
+      color,
+      ox: 0.5,
+      oy: 0.72,
+      dx: 0,
+      dy: -1,
+      active: false,
+      camera: false,
+      fireClock: index * 0.026,
+    })),
     stars: makeStars(),
     asteroids: [],
     beams: [],
@@ -84,31 +95,9 @@ function projected(asteroid, width, height) {
   };
 }
 
-function inputRay(input, previous) {
-  let ox = input.x;
-  let oy = input.y;
-  let dx = input.x - 0.5;
-  let dy = input.y - 0.94;
-  let camera = false;
-
-  if (input.source === "camera") {
-    const landmarks = input.hands?.[0]?.landmarks;
-    const pip = landmarks?.[6];
-    const tip = landmarks?.[8];
-    if (pip && tip) {
-      camera = true;
-      ox = tip.x;
-      oy = tip.y;
-      dx = tip.x - pip.x;
-      dy = tip.y - pip.y;
-    }
-  } else {
-    ox = 0.5;
-    oy = 0.94;
-  }
-
+function smoothRay(previous, ox, oy, dx, dy, camera) {
   const length = Math.hypot(dx, dy);
-  if (!input.active || length < 0.012) return { ...previous, active: false };
+  if (length < 0.012) return { ...previous, active: false };
   dx /= length;
   dy /= length;
   const blend = previous.active ? 0.24 : 1;
@@ -116,6 +105,7 @@ function inputRay(input, previous) {
   const smoothDy = previous.dy + (dy - previous.dy) * blend;
   const smoothLength = Math.hypot(smoothDx, smoothDy) || 1;
   return {
+    ...previous,
     ox: previous.ox + (ox - previous.ox) * blend,
     oy: previous.oy + (oy - previous.oy) * blend,
     dx: smoothDx / smoothLength,
@@ -123,6 +113,23 @@ function inputRay(input, previous) {
     active: true,
     camera,
   };
+}
+
+function inputRays(input, previousAims) {
+  if (input.source !== "camera") {
+    const pointer = smoothRay(previousAims[0], 0.5, 0.94, input.x - 0.5, input.y - 0.94, false);
+    return previousAims.map((aim, index) => index === 0
+      ? { ...pointer, active: input.active }
+      : { ...aim, active: false });
+  }
+
+  return previousAims.map((previous, index) => {
+    const landmarks = input.hands?.[index]?.landmarks;
+    const pip = landmarks?.[6];
+    const tip = landmarks?.[8];
+    if (!pip || !tip) return { ...previous, active: false };
+    return smoothRay(previous, tip.x, tip.y, tip.x - pip.x, tip.y - pip.y, true);
+  });
 }
 
 function rayExit(aim, width, height) {
@@ -155,8 +162,7 @@ function burst(scene, x, y, radius, color = "#ff9b54") {
   }
 }
 
-function fire(scene, width, height) {
-  const aim = scene.aim;
+function fire(scene, aim, width, height) {
   const startX = aim.ox * width;
   const startY = aim.oy * height;
   const end = rayExit(aim, width, height);
@@ -178,9 +184,9 @@ function fire(scene, width, height) {
 
   const hitX = target ? startX + aim.dx * targetDistance : end.x;
   const hitY = target ? startY + aim.dy * targetDistance : end.y;
-  scene.beams.push({ x1: startX, y1: startY, x2: hitX, y2: hitY, age: 0, hit: Boolean(target) });
+  scene.beams.push({ x1: startX, y1: startY, x2: hitX, y2: hitY, age: 0, hit: Boolean(target), color: aim.color });
   for (let spark = 0; spark < 3; spark += 1) {
-    scene.particles.push({ x: startX, y: startY, vx: aim.dx * random(80, 170) + random(-25, 25), vy: aim.dy * random(80, 170) + random(-25, 25), age: 0, life: 0.2, size: 2, color: "#a9fbff", streak: true });
+    scene.particles.push({ x: startX, y: startY, vx: aim.dx * random(80, 170) + random(-25, 25), vy: aim.dy * random(80, 170) + random(-25, 25), age: 0, life: 0.2, size: 2, color: aim.color, streak: true });
   }
 
   if (!target) {
@@ -188,19 +194,22 @@ function fire(scene, width, height) {
     return;
   }
   target.asteroid.hp -= 1;
-  burst(scene, target.at.x, target.at.y, Math.max(15, target.at.radius * 0.55), "#7ff7ff");
+  burst(scene, target.at.x, target.at.y, Math.max(15, target.at.radius * 0.55), aim.color);
   if (target.asteroid.hp > 0) return;
   scene.asteroids = scene.asteroids.filter((asteroid) => asteroid !== target.asteroid);
-  scene.score += 100 * scene.combo;
+  const points = 100 * scene.combo;
+  scene.score += points;
+  scene.playerScores[aim.id] += points;
   scene.combo = Math.min(9, scene.combo + 1);
   scene.comboTime = 2.2;
-  scene.floaters.push({ x: target.at.x, y: target.at.y, text: `+${100 * (scene.combo - 1)}`, age: 0 });
+  scene.floaters.push({ x: target.at.x, y: target.at.y, text: `P${aim.id + 1} +${points}`, age: 0, color: aim.color });
   burst(scene, target.at.x, target.at.y, target.at.radius + 22);
 }
 
 function stepScene(scene, input, seconds, width, height) {
   scene.time += seconds;
-  scene.aim = inputRay(input, scene.aim);
+  scene.aims = inputRays(input, scene.aims);
+  const playerCount = scene.aims.filter((aim) => aim.active).length;
   scene.shake = Math.max(0, scene.shake - seconds * 24);
   scene.flash = Math.max(0, scene.flash - seconds * 3.6);
   scene.comboTime = Math.max(0, scene.comboTime - seconds);
@@ -216,9 +225,11 @@ function stepScene(scene, input, seconds, width, height) {
   }
 
   scene.spawnClock -= seconds;
-  if (scene.spawnClock <= 0 && scene.asteroids.length < 14) {
+  const asteroidLimit = 18 + Math.max(1, playerCount) * 7;
+  if (scene.spawnClock <= 0 && scene.asteroids.length < asteroidLimit) {
     scene.asteroids.push(makeAsteroid(scene.nextId++, scene.wave));
-    scene.spawnClock = random(0.32, 0.62) / Math.min(1.7, 1 + scene.wave * 0.045);
+    const playerPressure = 1 + Math.max(0, playerCount - 1) * 0.38;
+    scene.spawnClock = random(0.2, 0.42) / (Math.min(1.8, 1 + scene.wave * 0.05) * playerPressure);
   }
 
   for (const asteroid of scene.asteroids) {
@@ -237,14 +248,16 @@ function stepScene(scene, input, seconds, width, height) {
   if (scene.shields <= 0) scene.gameOver = true;
   scene.wave = 1 + Math.floor(scene.score / 1200);
 
-  scene.fireClock -= seconds;
-  if (scene.aim.active && scene.fireClock <= 0) {
-    fire(scene, width, height);
-    scene.fireClock = 0.105;
+  for (const aim of scene.aims) {
+    aim.fireClock -= seconds;
+    if (aim.active && aim.fireClock <= 0) {
+      fire(scene, aim, width, height);
+      aim.fireClock = 0.12;
+    }
   }
 
   for (const beam of scene.beams) beam.age += seconds;
-  scene.beams = scene.beams.filter((beam) => beam.age < 0.16).slice(-12);
+  scene.beams = scene.beams.filter((beam) => beam.age < 0.16).slice(-40);
   for (const ring of scene.rings) {
     ring.age += seconds;
     ring.radius += (ring.target - ring.radius) * Math.min(1, seconds * 9);
@@ -257,7 +270,7 @@ function stepScene(scene, input, seconds, width, height) {
     particle.vx *= Math.pow(0.06, seconds);
     particle.vy = particle.vy * Math.pow(0.1, seconds) + 18 * seconds;
   }
-  scene.particles = scene.particles.filter((particle) => particle.age < particle.life).slice(-650);
+  scene.particles = scene.particles.filter((particle) => particle.age < particle.life).slice(-900);
   for (const floater of scene.floaters) {
     floater.age += seconds;
     floater.y -= seconds * 42;
@@ -307,7 +320,7 @@ function drawAsteroid(context, asteroid, at) {
   context.restore();
 }
 
-function drawScene(canvas, scene, input) {
+function drawScene(canvas, scene) {
   const width = Math.max(1, canvas.clientWidth);
   const height = Math.max(1, canvas.clientHeight);
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -361,15 +374,19 @@ function drawScene(canvas, scene, input) {
     context.beginPath();
     context.moveTo(beam.x1, beam.y1);
     context.lineTo(beam.x2, beam.y2);
-    context.strokeStyle = `rgba(71, 226, 255, ${alpha * 0.22})`;
+    context.strokeStyle = beam.color;
+    context.globalAlpha = alpha * 0.22;
     context.lineWidth = 16 * alpha;
     context.stroke();
+    context.globalAlpha = 1;
     context.beginPath();
     context.moveTo(beam.x1, beam.y1);
     context.lineTo(beam.x2, beam.y2);
-    context.strokeStyle = beam.hit ? `rgba(255, 255, 255, ${alpha})` : `rgba(137, 247, 255, ${alpha})`;
+    context.strokeStyle = beam.hit ? `rgba(255, 255, 255, ${alpha})` : beam.color;
+    context.globalAlpha = beam.hit ? 1 : alpha;
     context.lineWidth = 2.4 + alpha * 2;
     context.stroke();
+    context.globalAlpha = 1;
   }
   for (const ring of scene.rings) {
     context.beginPath();
@@ -394,30 +411,32 @@ function drawScene(canvas, scene, input) {
 
   for (const floater of scene.floaters) {
     context.globalAlpha = 1 - floater.age / 0.85;
-    context.fillStyle = "#fff2a6";
+    context.fillStyle = floater.color;
     context.font = "900 18px ui-monospace, monospace";
     context.textAlign = "center";
     context.fillText(floater.text, floater.x, floater.y);
   }
   context.globalAlpha = 1;
 
-  if (scene.aim.active) {
-    const startX = scene.aim.ox * width;
-    const startY = scene.aim.oy * height;
-    const end = rayExit(scene.aim, width, height);
+  for (const aim of scene.aims.filter((candidate) => candidate.active)) {
+    const startX = aim.ox * width;
+    const startY = aim.oy * height;
+    const end = rayExit(aim, width, height);
     const pulse = 0.65 + Math.sin(scene.time * 18) * 0.22;
     context.beginPath();
     context.moveTo(startX, startY);
     context.lineTo(end.x, end.y);
     context.setLineDash([3, 13]);
     context.lineDashOffset = -scene.time * 90;
-    context.strokeStyle = `rgba(97, 241, 255, ${0.24 * pulse})`;
+    context.strokeStyle = aim.color;
+    context.globalAlpha = 0.24 * pulse;
     context.lineWidth = 1;
     context.stroke();
+    context.globalAlpha = 1;
     context.setLineDash([]);
     context.beginPath();
     context.arc(startX, startY, 11 + pulse * 4, 0, TAU);
-    context.strokeStyle = "rgba(169, 251, 255, .9)";
+    context.strokeStyle = aim.color;
     context.lineWidth = 2;
     context.stroke();
     context.beginPath();
@@ -425,8 +444,14 @@ function drawScene(canvas, scene, input) {
     context.lineTo(startX + 19, startY);
     context.moveTo(startX, startY - 19);
     context.lineTo(startX, startY + 19);
-    context.strokeStyle = "rgba(169, 251, 255, .6)";
+    context.strokeStyle = aim.color;
+    context.globalAlpha = 0.66;
     context.stroke();
+    context.globalAlpha = 1;
+    context.fillStyle = aim.color;
+    context.font = "900 11px ui-monospace, monospace";
+    context.textAlign = "left";
+    context.fillText(`P${aim.id + 1}`, startX + 15, startY - 15);
   }
   context.globalCompositeOperation = "source-over";
   context.restore();
@@ -448,7 +473,7 @@ export default function AsteroidFingerGuns({ inputRef, paused }) {
   const sceneRef = useRef(null);
   if (sceneRef.current === null) sceneRef.current = createScene();
   const hudClock = useRef(0);
-  const [hud, setHud] = useState({ score: 0, combo: 1, shields: 3, wave: 1, active: false, camera: false, gameOver: false });
+  const [hud, setHud] = useState({ score: 0, scores: [0, 0, 0, 0], combo: 1, shields: 3, wave: 1, players: 0, camera: false, gameOver: false });
 
   useDemoFrame((seconds) => {
     const canvas = canvasRef.current;
@@ -458,11 +483,12 @@ export default function AsteroidFingerGuns({ inputRef, paused }) {
     const width = Math.max(1, canvas.clientWidth);
     const height = Math.max(1, canvas.clientHeight);
     stepScene(scene, input, seconds, width, height);
-    drawScene(canvas, scene, input);
+    drawScene(canvas, scene);
     hudClock.current += seconds;
     if (hudClock.current >= 0.1) {
       hudClock.current = 0;
-      setHud({ score: scene.score, combo: scene.combo, shields: scene.shields, wave: scene.wave, active: scene.aim.active, camera: scene.aim.camera, gameOver: scene.gameOver });
+      const activeAims = scene.aims.filter((aim) => aim.active);
+      setHud({ score: scene.score, scores: [...scene.playerScores], combo: scene.combo, shields: scene.shields, wave: scene.wave, players: activeAims.length, camera: activeAims.some((aim) => aim.camera), gameOver: scene.gameOver });
     }
   }, paused);
 
@@ -472,17 +498,23 @@ export default function AsteroidFingerGuns({ inputRef, paused }) {
       <canvas ref={canvasRef} aria-label="A forward-flying asteroid game controlled by the angle of your index finger" style={{ width: "100%", height: "100%", display: "block" }} />
       <div style={{ position: "absolute", top: "clamp(100px, 14vh, 136px)", left: 20, right: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", ...mono }}>
         <div style={{ display: "flex", gap: "clamp(14px, 3vw, 34px)", padding: "10px 14px", border: "1px solid rgba(101, 236, 255, .35)", borderRadius: 10, background: "rgba(4, 9, 30, .62)", backdropFilter: "blur(8px)" }}>
-          <span><small style={{ display: "block", color: "#77eaff", fontSize: 9 }}>SCORE</small><strong style={{ fontSize: "clamp(18px, 3vw, 27px)" }}>{hud.score.toString().padStart(6, "0")}</strong></span>
+          {hud.scores.map((score, index) => (
+            <span key={PLAYER_COLORS[index]} style={{ opacity: index < hud.players || score > 0 ? 1 : 0.38 }}>
+              <small style={{ display: "block", color: PLAYER_COLORS[index], fontSize: 9 }}>P{index + 1} SCORE</small>
+              <strong style={{ color: PLAYER_COLORS[index], fontSize: "clamp(15px, 2.2vw, 23px)" }}>{score.toString().padStart(5, "0")}</strong>
+            </span>
+          ))}
           <span><small style={{ display: "block", color: "#77eaff", fontSize: 9 }}>CHAIN</small><strong style={{ fontSize: "clamp(18px, 3vw, 27px)", color: hud.combo > 2 ? "#ffe07b" : "#dffcff" }}>×{hud.combo}</strong></span>
           <span><small style={{ display: "block", color: "#77eaff", fontSize: 9 }}>WAVE</small><strong style={{ fontSize: "clamp(18px, 3vw, 27px)" }}>{hud.wave}</strong></span>
+          <span><small style={{ display: "block", color: "#77eaff", fontSize: 9 }}>PLAYERS</small><strong style={{ fontSize: "clamp(18px, 3vw, 27px)", color: PLAYER_COLORS[Math.max(0, hud.players - 1)] }}>{hud.players}/4</strong></span>
         </div>
         <div style={{ padding: "10px 14px", border: "1px solid rgba(255, 108, 115, .38)", borderRadius: 10, background: "rgba(4, 9, 30, .62)", textAlign: "right", backdropFilter: "blur(8px)" }}>
           <small style={{ display: "block", color: "#ff9b9f", fontSize: 9 }}>HULL</small>
           <strong style={{ color: hud.shields <= 1 ? "#ff5b72" : "#79f4ff", fontSize: 24 }}>{"◆".repeat(Math.max(0, hud.shields))}{"◇".repeat(Math.max(0, 3 - hud.shields))}</strong>
         </div>
       </div>
-      <div style={{ position: "absolute", top: "clamp(176px, 25vh, 220px)", left: "50%", transform: "translateX(-50%)", padding: "6px 11px", borderRadius: 4, color: hud.active ? "#a8f8ff" : "#ffca85", background: "rgba(3, 8, 26, .58)", whiteSpace: "nowrap", fontSize: "clamp(9px, 1.4vw, 12px)", fontWeight: 800, ...mono }}>
-        {hud.active ? (hud.camera ? "FINGER VECTOR LOCKED · AUTOFIRE" : "POINTER VECTOR LOCKED · AUTOFIRE") : "SHOW YOUR INDEX FINGER TO ARM"}
+      <div style={{ position: "absolute", top: "clamp(176px, 25vh, 220px)", left: "50%", transform: "translateX(-50%)", padding: "6px 11px", borderRadius: 4, color: hud.players ? "#a8f8ff" : "#ffca85", background: "rgba(3, 8, 26, .58)", whiteSpace: "nowrap", fontSize: "clamp(9px, 1.4vw, 12px)", fontWeight: 800, ...mono }}>
+        {hud.players ? (hud.camera ? `${hud.players} FINGER${hud.players === 1 ? "" : "S"} LOCKED · AUTOFIRE` : "POINTER VECTOR LOCKED · AUTOFIRE") : "SHOW UP TO FOUR INDEX FINGERS TO ARM"}
       </div>
       {hud.gameOver && (
         <div style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center", gap: 10, textAlign: "center", background: "rgba(2, 4, 18, .76)", backdropFilter: "blur(3px)", ...mono }}>
