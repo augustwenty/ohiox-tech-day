@@ -47,14 +47,14 @@ button { cursor: pointer; }
 .result, .paused { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; background: rgba(3,8,20,.62); }
 .result h2 { margin: 0; font-size: clamp(40px,7vw,82px); }
 .paused { z-index: 8; font-size: 50px; font-weight: 900; }
-.demo-toolbar { position: absolute; z-index: 10; left: 16px; right: 190px; top: 14px; display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: rgba(8,13,22,.74); backdrop-filter: blur(14px); }
+.demo-toolbar { position: absolute; z-index: 10; left: 16px; right: 16px; top: 14px; display: flex; align-items: center; gap: 8px; padding: 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: rgba(8,13,22,.74); backdrop-filter: blur(14px); }
 .demo-toolbar > div { min-width: 180px; margin-right: auto; }
 .demo-toolbar strong, .demo-toolbar small { display: block; }
 .demo-toolbar small { margin-top: 3px; color: #c5d0e4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .demo-toolbar button { padding: 9px 13px; color: white; border: 1px solid #465779; border-radius: 999px; background: #151e33; }
 .demo-toolbar button:hover { border-color: #22d3ee; }
 .demo-toolbar button[aria-pressed="true"] { color: #071018; background: #67e8f9; border-color: #67e8f9; }
-.exit-control { --hold-progress: 0; position: absolute; z-index: 12; top: 14px; right: 16px; width: 158px; min-height: 68px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; border: 1px solid rgba(255,255,255,.25); border-radius: 18px; background: rgba(12,18,29,.8); backdrop-filter: blur(14px); box-shadow: 0 16px 36px rgba(0,0,0,.32); }
+.exit-control { --hold-progress: 0; position: absolute; z-index: 12; right: 16px; bottom: 14px; width: 158px; min-height: 68px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; border: 1px solid rgba(255,255,255,.25); border-radius: 18px; background: rgba(12,18,29,.8); backdrop-filter: blur(14px); box-shadow: 0 16px 36px rgba(0,0,0,.32); }
 .exit-control::before { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--hold-progress) * 100%); background: linear-gradient(90deg,rgba(14,165,233,.65),rgba(34,211,238,.5)); }
 .exit-control::after { content: ""; position: absolute; left: 0; bottom: 0; width: calc(var(--hold-progress) * 100%); height: 5px; background: #22d3ee; box-shadow: 0 0 16px rgba(34,211,238,.8); }
 .exit-control > * { position: relative; z-index: 1; }
@@ -73,7 +73,6 @@ button { cursor: pointer; }
   .helper-pill { display: none; }
   .landing-footer { left: 14px; right: 14px; justify-content: center; }
   .demo-toolbar { flex-wrap: wrap; }
-  .demo-toolbar { right: 132px; }
   .exit-control { width: 110px; }
   .demo-toolbar > div { width: calc(100% - 90px); order: -1; }
   .demo-toolbar small { display: none; }

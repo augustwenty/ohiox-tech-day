@@ -206,7 +206,7 @@ export default function FluidFlow({ inputRef, paused }) {
         aria-label="Interactive glowing fluid flow simulation"
         style={{ display: "block", width: "100%", height: "100%" }}
       />
-      <div style={{ position: "absolute", right: 22, bottom: 20, padding: "9px 14px", border: "1px solid rgba(255,255,255,.16)", borderRadius: 999, color: "rgba(235,248,255,.82)", background: "rgba(3,7,19,.58)", backdropFilter: "blur(10px)", pointerEvents: "none", fontSize: 14 }}>
+      <div style={{ position: "absolute", right: 16, bottom: 100, padding: "9px 14px", border: "1px solid rgba(255,255,255,.16)", borderRadius: 999, color: "rgba(235,248,255,.82)", background: "rgba(3,7,19,.58)", backdropFilter: "blur(10px)", pointerEvents: "none", fontSize: 14 }}>
         Move to stir · pinch or press to boost
       </div>
     </div>
