@@ -14,6 +14,7 @@ export const demo = {
 const TAU = Math.PI * 2;
 const COLORS = ["#ff7b54", "#ffb84d", "#ffe78a", "#69efff", "#b88cff"];
 const PLAYER_COLORS = ["#69efff", "#ff7fd1", "#ffe46b", "#9cff78"];
+const TRACKING_GRACE_SECONDS = 0.55;
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const random = (min, max) => min + Math.random() * (max - min);
@@ -75,6 +76,8 @@ function createScene() {
       dy: -1,
       active: false,
       camera: false,
+      handedness: null,
+      missingFor: TRACKING_GRACE_SECONDS,
       fireClock: index * 0.026,
     })),
     stars: makeStars(),
@@ -112,24 +115,57 @@ function smoothRay(previous, ox, oy, dx, dy, camera) {
     dy: smoothDy / smoothLength,
     active: true,
     camera,
+    missingFor: 0,
   };
 }
 
-function inputRays(input, previousAims) {
+function inputRays(input, previousAims, seconds) {
   if (input.source !== "camera") {
     const pointer = smoothRay(previousAims[0], 0.5, 0.94, input.x - 0.5, input.y - 0.94, false);
     return previousAims.map((aim, index) => index === 0
-      ? { ...pointer, active: input.active }
-      : { ...aim, active: false });
+      ? { ...pointer, active: input.active, handedness: null }
+      : { ...aim, active: false, handedness: null, missingFor: TRACKING_GRACE_SECONDS });
   }
 
-  return previousAims.map((previous, index) => {
-    const landmarks = input.hands?.[index]?.landmarks;
+  const candidates = (input.hands ?? []).slice(0, 4).flatMap((hand) => {
+    const landmarks = hand.landmarks;
     const pip = landmarks?.[6];
     const tip = landmarks?.[8];
-    if (!pip || !tip) return { ...previous, active: false };
-    return smoothRay(previous, tip.x, tip.y, tip.x - pip.x, tip.y - pip.y, true);
+    return pip && tip ? [{ pip, tip, handedness: hand.handedness ?? null }] : [];
   });
+
+  const next = previousAims.map((aim) => ({ ...aim, missingFor: aim.missingFor + seconds }));
+  const availableSlots = new Set(previousAims.map((_, index) => index));
+  for (const candidate of candidates) {
+    let bestSlot = null;
+    let bestCost = Infinity;
+    for (const index of availableSlots) {
+      const previous = previousAims[index];
+      const distance = Math.hypot(candidate.tip.x - previous.ox, candidate.tip.y - previous.oy);
+      const handednessPenalty = previous.handedness && candidate.handedness !== previous.handedness ? 0.3 : 0;
+      const unusedPenalty = previous.active ? 0 : 0.08;
+      const cost = distance + handednessPenalty + unusedPenalty;
+      if (cost < bestCost) {
+        bestCost = cost;
+        bestSlot = index;
+      }
+    }
+    if (bestSlot === null) continue;
+    availableSlots.delete(bestSlot);
+    const ray = smoothRay(
+      previousAims[bestSlot],
+      candidate.tip.x,
+      candidate.tip.y,
+      candidate.tip.x - candidate.pip.x,
+      candidate.tip.y - candidate.pip.y,
+      true,
+    );
+    next[bestSlot] = { ...ray, handedness: candidate.handedness };
+  }
+
+  return next.map((aim, index) => availableSlots.has(index)
+    ? { ...aim, active: previousAims[index].active && aim.missingFor < TRACKING_GRACE_SECONDS }
+    : aim);
 }
 
 function rayExit(aim, width, height) {
@@ -208,7 +244,7 @@ function fire(scene, aim, width, height) {
 
 function stepScene(scene, input, seconds, width, height) {
   scene.time += seconds;
-  scene.aims = inputRays(input, scene.aims);
+  scene.aims = inputRays(input, scene.aims, seconds);
   const playerCount = scene.aims.filter((aim) => aim.active).length;
   scene.shake = Math.max(0, scene.shake - seconds * 24);
   scene.flash = Math.max(0, scene.flash - seconds * 3.6);
