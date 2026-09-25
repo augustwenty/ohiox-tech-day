@@ -166,8 +166,8 @@ function roundedRect(context, x, y, width, height, radius) {
 function drawWorld(context, world) {
   context.clearRect(0, 0, WIDTH, HEIGHT);
   const background = context.createLinearGradient(0, WALL.top, 0, WALL.bottom);
-  background.addColorStop(0, "rgba(15, 28, 48, .58)");
-  background.addColorStop(1, "rgba(5, 12, 23, .84)");
+  background.addColorStop(0, "rgba(15, 28, 48, .08)");
+  background.addColorStop(1, "rgba(5, 12, 23, .2)");
   context.fillStyle = background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -304,7 +304,7 @@ export default function BlockToybox({ inputRef, paused }) {
   }, paused);
 
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "rgba(3, 8, 18, .72)" }}>
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
       <canvas
         ref={canvasRef}
         width={WIDTH}
