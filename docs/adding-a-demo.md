@@ -41,6 +41,7 @@ The metadata needs a unique lowercase `id`, `title`, `description`, and
 | `x`, `y` | Position from 0–1, origin at top-left. |
 | `action` | Pinch, pointer press, or Space key. |
 | `tips` | All visible camera fingertips; empty for pointer input. |
+| `hands` | Camera hand poses with 21 normalized `landmarks`, optional `worldLandmarks`, handedness, and detector score; empty for pointer input. |
 
 Coordinates are already mirrored. Use the elapsed-seconds argument from
 `useDemoFrame` for movement, keep collections bounded, and clean up timers or

@@ -1,7 +1,7 @@
 const clamp = (value) => Math.max(0, Math.min(1, value));
 
 export function emptyInput(source = "camera") {
-  return { active: source === "pointer", source, x: 0.5, y: 0.5, action: false, tips: [] };
+  return { active: source === "pointer", source, x: 0.5, y: 0.5, action: false, tips: [], hands: [] };
 }
 
 export function handInput(hands, wasPinching = false) {
@@ -19,6 +19,13 @@ export function handInput(hands, wasPinching = false) {
       x: primary.index.x,
       y: primary.index.y,
       action: pinching,
+      hands: hands.map((hand, handIndex) => ({
+        id: `${handIndex}`,
+        handedness: hand.handedness ?? null,
+        score: hand.score ?? null,
+        landmarks: hand.landmarks ?? [],
+        worldLandmarks: hand.worldLandmarks ?? [],
+      })),
       tips: hands.flatMap((hand, handIndex) =>
         hand.tips.map((tip, tipIndex) => ({
           id: `${handIndex}-${tipIndex}`,

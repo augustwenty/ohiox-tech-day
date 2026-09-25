@@ -3,11 +3,15 @@ import assert from "node:assert/strict";
 import { emptyInput, handInput, moveInput, pointerInput } from "../src/input.js";
 
 test("camera input includes the primary point, pinch, and all tips", () => {
-  const result = handInput([{ index: { x: .25, y: .75 }, pinchDistance: .03, tips: [{ x: .2, y: .7 }, { x: .25, y: .75 }] }]);
+  const landmarks = Array.from({ length: 21 }, (_, index) => ({ x: index / 20, y: .5, z: 0 }));
+  const result = handInput([{ index: { x: .25, y: .75 }, pinchDistance: .03, tips: [{ x: .2, y: .7 }, { x: .25, y: .75 }], landmarks, handedness: "Left" }]);
   assert.equal(result.pinching, true);
   assert.equal(result.input.action, true);
   assert.deepEqual([result.input.x, result.input.y], [.25, .75]);
   assert.equal(result.input.tips.length, 2);
+  assert.equal(result.input.hands.length, 1);
+  assert.equal(result.input.hands[0].landmarks, landmarks);
+  assert.equal(result.input.hands[0].handedness, "Left");
 });
 
 test("four hands provide twenty distinct fingertip sites", () => {

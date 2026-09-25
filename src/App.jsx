@@ -223,7 +223,7 @@ export default function App() {
             if (inputMode === "pointer" && event.code === "Space") pointerRef.current = { ...pointerRef.current, action: false };
           }}
         >
-          <div className="demo-layer"><Demo key={`${activeDemo.id}-${revision}`} inputRef={inputRef} paused={paused} /></div>
+          <div className="demo-layer"><Demo key={`${activeDemo.id}-${revision}`} inputRef={inputRef} videoRef={camera.videoRef} paused={paused} /></div>
           <div className="demo-toolbar" onPointerDown={(event) => event.stopPropagation()}>
             <div><strong>{activeDemo.title}</strong><small>{activeDemo.instructions}</small></div>
             <button type="button" aria-pressed={inputMode === "camera"} onClick={() => setInputMode("camera")}>Camera</button>

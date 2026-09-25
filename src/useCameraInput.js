@@ -16,6 +16,7 @@ function normalizedPoint(point, width, height) {
   return {
     x: Math.max(0, Math.min(1, normalized ? 1 - point.x : 1 - point.x / width)),
     y: Math.max(0, Math.min(1, normalized ? point.y : point.y / height)),
+    z: Number.isFinite(point.z) ? point.z : 0,
   };
 }
 
@@ -32,6 +33,13 @@ function extractHands(results, video) {
       index,
       tips: tips.filter(Boolean),
       landmarks,
+      worldLandmarks: (hand.keypoints3D ?? []).map((point) => ({
+        x: point.x,
+        y: point.y,
+        z: point.z,
+      })),
+      handedness: hand.handedness ?? null,
+      score: hand.score ?? null,
       pinchDistance: Math.hypot(thumb.x - index.x, thumb.y - index.y),
     }];
   });
