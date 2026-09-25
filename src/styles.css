@@ -54,13 +54,14 @@ button { cursor: pointer; }
 .demo-toolbar button { padding: 9px 13px; color: white; border: 1px solid #465779; border-radius: 999px; background: #151e33; }
 .demo-toolbar button:hover { border-color: #22d3ee; }
 .demo-toolbar button[aria-pressed="true"] { color: #071018; background: #67e8f9; border-color: #67e8f9; }
-.exit-control { --hold-progress: 0; position: absolute; z-index: 12; right: 16px; bottom: 14px; width: 158px; min-height: 68px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; border: 1px solid rgba(255,255,255,.25); border-radius: 18px; background: rgba(12,18,29,.8); backdrop-filter: blur(14px); box-shadow: 0 16px 36px rgba(0,0,0,.32); }
-.exit-control::before { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--hold-progress) * 100%); background: linear-gradient(90deg,rgba(14,165,233,.65),rgba(34,211,238,.5)); }
-.exit-control::after { content: ""; position: absolute; left: 0; bottom: 0; width: calc(var(--hold-progress) * 100%); height: 5px; background: #22d3ee; box-shadow: 0 0 16px rgba(34,211,238,.8); }
+.exit-control { --hold-progress: 0; position: absolute; z-index: 12; right: 16px; bottom: 14px; width: 108px; height: 108px; padding: 8px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; border: 2px solid #ff4d4f; border-radius: 0; background: rgba(12,18,29,.8); backdrop-filter: blur(14px); box-shadow: 0 16px 36px rgba(0,0,0,.32); }
+.exit-control::before { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--hold-progress) * 100%); background: linear-gradient(90deg,rgba(255,77,79,.55),rgba(255,114,101,.48)); }
+.exit-control::after { content: ""; position: absolute; left: 0; bottom: 0; width: calc(var(--hold-progress) * 100%); height: 5px; background: #ff4d4f; box-shadow: 0 0 16px rgba(255,77,79,.8); }
 .exit-control > * { position: relative; z-index: 1; }
 .exit-control strong { font-size: 1.15rem; }
-.exit-control span { margin-top: 3px; color: #cbd8e8; font-size: .76rem; }
-.exit-control.active, .exit-control:hover, .exit-control:focus-visible { outline: none; border-color: #22d3ee; background: rgba(12,44,72,.92); box-shadow: 0 0 28px rgba(34,211,238,.3); }
+.exit-control span { margin-top: 3px; color: #cbd8e8; font-size: .72rem; line-height: 1.1; }
+.exit-control.active, .exit-control:hover { background: rgba(58,20,27,.92); box-shadow: 0 0 28px rgba(255,77,79,.3); }
+.exit-control:focus-visible { outline: 2px solid white; outline-offset: 3px; }
 .demo-status { position: absolute; z-index: 7; left: 18px; bottom: 18px; padding: 10px 16px; border-radius: 999px; background: rgba(3,8,20,.78); color: #d8e1ef; backdrop-filter: blur(12px); }
 @media (max-width: 720px) {
   .landing-header { top: 14px; }
@@ -73,7 +74,7 @@ button { cursor: pointer; }
   .helper-pill { display: none; }
   .landing-footer { left: 14px; right: 14px; justify-content: center; }
   .demo-toolbar { flex-wrap: wrap; }
-  .exit-control { width: 110px; }
+  .exit-control { width: 92px; height: 92px; }
   .demo-toolbar > div { width: calc(100% - 90px); order: -1; }
   .demo-toolbar small { display: none; }
   .hud { top: 132px; }
