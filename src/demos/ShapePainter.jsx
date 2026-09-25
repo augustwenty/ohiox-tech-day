@@ -16,6 +16,7 @@ const HEIGHT = 600;
 const ROUND_SECONDS = 45;
 const BRUSH_WIDTH = 17;
 const GUIDE_TOLERANCE = 25;
+const CAMERA_DEAD_ZONE = 0.006;
 
 function sampleLine(a, b, step = 5) {
   const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
@@ -156,6 +157,37 @@ function anchorPoint(input) {
   return input.tips.find((tip) => tip.id === "0-0") ?? null;
 }
 
+function steadyAnchor(state, input, seconds) {
+  const raw = anchorPoint(input);
+  if (!input.active || !raw) {
+    state.current = null;
+    return null;
+  }
+  if (input.source !== "camera") {
+    state.current = null;
+    return raw;
+  }
+  if (!state.current) {
+    state.current = { x: raw.x, y: raw.y };
+    return state.current;
+  }
+
+  const dx = raw.x - state.current.x;
+  const dy = raw.y - state.current.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= CAMERA_DEAD_ZONE) return state.current;
+
+  // Dampen small landmark shifts but follow intentional hand movement promptly.
+  const response = 8 + Math.min(1, distance / 0.08) * 16;
+  const alpha = 1 - Math.exp(-response * Math.max(seconds, 1 / 120));
+  const fraction = alpha * (distance - CAMERA_DEAD_ZONE) / distance;
+  state.current = {
+    x: state.current.x + dx * fraction,
+    y: state.current.y + dy * fraction,
+  };
+  return state.current;
+}
+
 function playLayout(width, height) {
   const compact = width <= 720;
   const top = compact ? 175 : 150;
@@ -216,6 +248,7 @@ export default function ShapePainter({ inputRef, paused }) {
   const finishRef = useRef(null);
   const nextRef = useRef(null);
   const sceneRef = useRef(null);
+  const cameraAnchorRef = useRef({ current: null });
   if (!sceneRef.current) sceneRef.current = createScene();
   const [hud, setHud] = useState({ phase: "ready", index: 0, coverage: 0, remaining: ROUND_SECONDS, result: null });
 
@@ -250,7 +283,7 @@ export default function ShapePainter({ inputRef, paused }) {
     const input = inputRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const anchor = anchorPoint(input);
+    const anchor = steadyAnchor(cameraAnchorRef.current, input, seconds);
     const down = Boolean(input.active && anchor && input.action);
     const actionStarted = down && !scene.actionWasDown;
     scene.actionWasDown = down;
